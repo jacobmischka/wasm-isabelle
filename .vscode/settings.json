@@ -1,0 +1,6 @@
+{
+    "isabelle.args": [
+        "-dNative_Word",
+        "-dWebAssembly"
+    ]
+}
