@@ -76,12 +76,17 @@ consts
   (* host *)
   host_apply :: "s \<Rightarrow> tf \<Rightarrow> host \<Rightarrow> v list \<Rightarrow> host_state \<Rightarrow> (s \<times> v list) option"
 
-definition typeof :: " v \<Rightarrow> t" where
-  "typeof v = (case v of
+definition typeof_num :: " nv \<Rightarrow> nt" where
+  "typeof_num nv = (case nv of
                  ConstInt32 _ \<Rightarrow> T_i32
                | ConstInt64 _ \<Rightarrow> T_i64
                | ConstFloat32 _ \<Rightarrow> T_f32
                | ConstFloat64 _ \<Rightarrow> T_f64)"
+
+definition typeof :: "v \<Rightarrow> t" where
+  "typeof v = (case v of
+                  NumVal nv \<Rightarrow> Nt (typeof_num nv)
+                  )"
 
 definition option_projl :: "('a \<times> 'b) option \<Rightarrow> 'a option" where
   "option_projl x = map_option fst x"
@@ -89,12 +94,17 @@ definition option_projl :: "('a \<times> 'b) option \<Rightarrow> 'a option" whe
 definition option_projr :: "('a \<times> 'b) option \<Rightarrow> 'b option" where
   "option_projr x = map_option snd x"
 
-definition t_length :: "t \<Rightarrow> nat" where
- "t_length t = (case t of
+definition nt_length :: "nt \<Rightarrow> nat" where
+ "nt_length nt = (case nt of
                   T_i32 \<Rightarrow> 4
                 | T_i64 \<Rightarrow> 8
                 | T_f32 \<Rightarrow> 4
                 | T_f64 \<Rightarrow> 8)"
+
+definition t_length :: "t \<Rightarrow> nat" where
+  "t_length t = (case t of
+                   Nt nt \<Rightarrow> nt_length nt
+                |  _ \<Rightarrow> 4)" \<comment> \<open>I think all addresses are 32-bit/4 bytes?\<close>
 
 definition tp_length :: "tp \<Rightarrow> nat" where
  "tp_length tp = (case tp of
@@ -103,18 +113,23 @@ definition tp_length :: "tp \<Rightarrow> nat" where
                | Tp_i32 \<Rightarrow> 4)"
 
 definition is_int_t :: "t \<Rightarrow> bool" where
- "is_int_t t = (case t of
-                  T_i32 \<Rightarrow> True
-                | T_i64 \<Rightarrow> True
-                | T_f32 \<Rightarrow> False
-                | T_f64 \<Rightarrow> False)"
+ "is_int_t t = (case t of Rt _ \<Rightarrow> False | Nt nt \<Rightarrow>
+                  (case nt of
+                      T_i32 \<Rightarrow> True
+                    | T_i64 \<Rightarrow> True
+                    | T_f32 \<Rightarrow> False
+                    | T_f64 \<Rightarrow> False))"
 
 definition is_float_t :: "t \<Rightarrow> bool" where
- "is_float_t t = (case t of
-                    T_i32 \<Rightarrow> False
-                  | T_i64 \<Rightarrow> False
-                  | T_f32 \<Rightarrow> True
-                  | T_f64 \<Rightarrow> True)"
+  "is_float_t t = (case t of Rt _ \<Rightarrow> False | Nt nt \<Rightarrow>
+                    (case nt of
+                        T_i32 \<Rightarrow> False
+                      | T_i64 \<Rightarrow> False
+                      | T_f32 \<Rightarrow> True
+                      | T_f64 \<Rightarrow> True))"
+
+definition is_sh :: "tg \<Rightarrow> bool" where
+  "is_sh tg = (tg_sh tg = T_sh)"
 
 definition is_mut :: "tg \<Rightarrow> bool" where
   "is_mut tg = (tg_mut tg = T_mut)"
@@ -201,7 +216,7 @@ definition rglob_is_mut :: "global \<Rightarrow> bool" where
 
 definition stypes :: "s \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> tf" where
   "stypes s i j = ((types ((inst s)!i))!j)"
-  
+
 definition sfunc_ind :: "s \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
   "sfunc_ind s i j = ((inst.funcs ((inst s)!i))!j)"
 
@@ -210,7 +225,7 @@ definition sfunc :: "s \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> cl" whe
 
 definition sglob_ind :: "s \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
   "sglob_ind s i j = ((inst.globs ((inst s)!i))!j)"
-  
+
 definition sglob :: "s \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> global" where
   "sglob s i j = (globs s)!(sglob_ind s i j)"
 
@@ -234,7 +249,7 @@ definition supdate_glob :: "s \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 
 
 definition is_const :: "e \<Rightarrow> bool" where
   "is_const e = (case e of Basic (C _) \<Rightarrow> True | _ \<Rightarrow> False)"
-    
+
 definition const_list :: "e list \<Rightarrow> bool" where
   "const_list xs = list_all is_const xs"
 
@@ -268,8 +283,8 @@ definition load_store_t_bounds :: "a \<Rightarrow> tp option \<Rightarrow> t \<R
                                    None \<Rightarrow> 2^a \<le> t_length t
                                  | Some tp \<Rightarrow> 2^a \<le> tp_length tp \<and> tp_length tp < t_length t \<and>  is_int_t t)"
 
-definition cvt_i32 :: "sx option \<Rightarrow> v \<Rightarrow> i32 option" where
-  "cvt_i32 sx v = (case v of
+definition cvt_i32 :: "sx option \<Rightarrow> nv \<Rightarrow> i32 option" where
+  "cvt_i32 sx nv = (case nv of
                    ConstInt32 c \<Rightarrow> None
                  | ConstInt64 c \<Rightarrow> Some (wasm_wrap c)
                  | ConstFloat32 c \<Rightarrow> (case sx of
@@ -281,8 +296,8 @@ definition cvt_i32 :: "sx option \<Rightarrow> v \<Rightarrow> i32 option" where
                                       | Some S \<Rightarrow> si32_trunc_f64 c
                                       | None \<Rightarrow> None))"
 
-definition cvt_i64 :: "sx option \<Rightarrow> v \<Rightarrow> i64 option" where
-  "cvt_i64 sx v = (case v of
+definition cvt_i64 :: "sx option \<Rightarrow> nv \<Rightarrow> i64 option" where
+  "cvt_i64 sx nv = (case nv of
                    ConstInt32 c \<Rightarrow> (case sx of
                                         Some U \<Rightarrow> Some (wasm_extend_u c)
                                       | Some S \<Rightarrow> Some (wasm_extend_s c)
@@ -297,8 +312,8 @@ definition cvt_i64 :: "sx option \<Rightarrow> v \<Rightarrow> i64 option" where
                                       | Some S \<Rightarrow> si64_trunc_f64 c
                                       | None \<Rightarrow> None))"
 
-definition cvt_f32 :: "sx option \<Rightarrow> v \<Rightarrow> f32 option" where
-  "cvt_f32 sx v = (case v of
+definition cvt_f32 :: "sx option \<Rightarrow> nv \<Rightarrow> f32 option" where
+  "cvt_f32 sx nv = (case nv of
                    ConstInt32 c \<Rightarrow> (case sx of
                                       Some U \<Rightarrow> Some (f32_convert_ui32 c)
                                     | Some S \<Rightarrow> Some (f32_convert_si32 c)
@@ -310,8 +325,8 @@ definition cvt_f32 :: "sx option \<Rightarrow> v \<Rightarrow> f32 option" where
                  | ConstFloat32 c \<Rightarrow> None
                  | ConstFloat64 c \<Rightarrow> Some (wasm_demote c))"
 
-definition cvt_f64 :: "sx option \<Rightarrow> v \<Rightarrow> f64 option" where
-  "cvt_f64 sx v = (case v of
+definition cvt_f64 :: "sx option \<Rightarrow> nv \<Rightarrow> f64 option" where
+  "cvt_f64 sx nv = (case nv of
                    ConstInt32 c \<Rightarrow> (case sx of
                                       Some U \<Rightarrow> Some (f64_convert_ui32 c)
                                     | Some S \<Rightarrow> Some (f64_convert_si32 c)
@@ -323,45 +338,57 @@ definition cvt_f64 :: "sx option \<Rightarrow> v \<Rightarrow> f64 option" where
                  | ConstFloat32 c \<Rightarrow> Some (wasm_promote c)
                  | ConstFloat64 c \<Rightarrow> None)"
 
-definition cvt :: "t \<Rightarrow> sx option \<Rightarrow> v \<Rightarrow> v option" where
-  "cvt t sx v = (case t of
-                 T_i32 \<Rightarrow> (case (cvt_i32 sx v) of Some c \<Rightarrow> Some (ConstInt32 c) | None \<Rightarrow> None)
-               | T_i64 \<Rightarrow> (case (cvt_i64 sx v) of Some c \<Rightarrow> Some (ConstInt64 c) | None \<Rightarrow> None) 
-               | T_f32 \<Rightarrow> (case (cvt_f32 sx v) of Some c \<Rightarrow> Some (ConstFloat32 c) | None \<Rightarrow> None)
-               | T_f64 \<Rightarrow> (case (cvt_f64 sx v) of Some c \<Rightarrow> Some (ConstFloat64 c) | None \<Rightarrow> None))"
+definition cvt :: "nt \<Rightarrow> sx option \<Rightarrow> nv \<Rightarrow> nv option" where
+  "cvt nt sx nv = (case nt of
+                 T_i32 \<Rightarrow> (case (cvt_i32 sx nv) of Some c \<Rightarrow> Some (ConstInt32 c) | None \<Rightarrow> None)
+               | T_i64 \<Rightarrow> (case (cvt_i64 sx nv) of Some c \<Rightarrow> Some (ConstInt64 c) | None \<Rightarrow> None) 
+               | T_f32 \<Rightarrow> (case (cvt_f32 sx nv) of Some c \<Rightarrow> Some (ConstFloat32 c) | None \<Rightarrow> None)
+               | T_f64 \<Rightarrow> (case (cvt_f64 sx nv) of Some c \<Rightarrow> Some (ConstFloat64 c) | None \<Rightarrow> None))"
 
-definition bits :: "v \<Rightarrow> bytes" where
-  "bits v = (case v of
+definition bits :: "nv \<Rightarrow> bytes" where
+  "bits nv = (case nv of
                ConstInt32 c \<Rightarrow> (serialise_i32 c)
              | ConstInt64 c \<Rightarrow> (serialise_i64 c)
              | ConstFloat32 c \<Rightarrow> (serialise_f32 c)
              | ConstFloat64 c \<Rightarrow> (serialise_f64 c))"
 
-definition bitzero :: "t \<Rightarrow> v" where
-  "bitzero t = (case t of
+definition bitzero :: "nt \<Rightarrow> nv" where
+  "bitzero nt = (case nt of
                 T_i32 \<Rightarrow> ConstInt32 0
               | T_i64 \<Rightarrow> ConstInt64 0
               | T_f32 \<Rightarrow> ConstFloat32 0
               | T_f64 \<Rightarrow> ConstFloat64 0)"
 
-definition n_zeros :: "t list \<Rightarrow> v list" where
-  "n_zeros ts = (map (\<lambda>t. bitzero t) ts)"
+definition n_zeros :: "nt list \<Rightarrow> nv list" where
+  "n_zeros nts = (map (\<lambda>nt. bitzero nt) nts)"
+
+lemma is_int_nt_exists:
+  assumes "is_int_t (Nt nt)"
+  shows "nt = T_i32 \<or> nt = T_i64"
+  using assms
+  by (cases nt) (auto simp add: is_int_t_def)
 
 lemma is_int_t_exists:
   assumes "is_int_t t"
-  shows "t = T_i32 \<or> t = T_i64"
+  shows "t = Nt T_i32 \<or> t = Nt T_i64"
   using assms
-  by (cases t) (auto simp add: is_int_t_def)
+  by (cases t) (auto simp add: is_int_nt_exists is_int_t_def)
+
+lemma is_float_nt_exists:
+  assumes "is_float_t (Nt nt)"
+  shows "nt = T_f32 \<or> nt = T_f64"
+  using assms
+  by (cases nt) (auto simp add: is_float_t_def)
 
 lemma is_float_t_exists:
   assumes "is_float_t t"
-  shows "t = T_f32 \<or> t = T_f64"
+  shows "t = Nt T_f32 \<or> t = Nt T_f64"
   using assms
-  by (cases t) (auto simp add: is_float_t_def)
+  by (cases t) (auto simp add: is_float_nt_exists is_float_t_def)
 
 
-lemma int_float_disjoint: "is_int_t t = -(is_float_t t)"
-  by simp (metis is_float_t_def is_int_t_def t.exhaust t.simps(13-16))
+lemma int_float_disjoint: "is_int_t (Nt nt) = -(is_float_t (Nt nt))"
+  by (metis bool_Compl_def is_float_t_def is_int_t_def nt.exhaust nt.simps(13-16) t.simps(5))
 
 lemma stab_unfold:
   assumes "stab s i j = Some cl"
@@ -390,7 +417,7 @@ lemma inj_basic: "inj Basic"
   by (meson e.inject(1) injI)
 
 lemma inj_basic_econst: "inj (\<lambda>v. $C v)"
-  by (meson b_e.inject(16) e.inject(1) injI)
+  by (meson b_e.inject(19) e.inject(1) injI)
 
 lemma to_e_list_1:"[$ a] = $* [a]"
   by simp
@@ -448,21 +475,21 @@ lemma Lfilled_imp_exists_Lfilled_exact:
   by (induction rule: Lfilled.induct) fastforce+
 
 lemma n_zeros_typeof:
-  "n_zeros ts = vs \<Longrightarrow> (ts = map typeof vs)"
-proof (induction ts arbitrary: vs)
+  "n_zeros nts = nvs \<Longrightarrow> (nts = map typeof_num nvs)"
+proof (induction nts arbitrary: nvs)
   case Nil
   thus ?case
     unfolding n_zeros_def
     by simp
 next
-  case (Cons t ts)
-  obtain vs' where "n_zeros ts = vs'"
+  case (Cons nt nts)
+  obtain nvs' where "n_zeros nts = nvs'"
     using n_zeros_def
     by blast
   moreover
-  have "typeof (bitzero t) = t"
-    unfolding typeof_def bitzero_def
-    by (cases t, simp_all)
+  have "typeof_num (bitzero nt) = nt"
+    unfolding typeof_num_def bitzero_def
+    by (cases nt, simp_all)
   ultimately
   show ?case
     using Cons
