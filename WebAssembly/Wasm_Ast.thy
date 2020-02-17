@@ -98,7 +98,7 @@ datatype
   relop_f = Eqf | Nef | Ltf | Gtf | Lef | Gef
   
 datatype
-  cvtop = Convert | Reinterpret
+  cvtop = Convert | ConvertSat | Reinterpret
 
 datatype \<comment> \<open>values\<close>
   v =

@@ -14,6 +14,16 @@ lemma t_cvt: assumes "cvt t sx v = Some v'" shows "t = typeof v'"
   apply (simp add: option.case_eq_if, metis option.discI option.inject v.simps(20))
   done
 
+lemma t_cvt_sat: assumes "cvt_sat t sx v = v'" shows "t = typeof v'"
+  using assms
+  unfolding cvt_sat_def typeof_def
+  apply (cases t)
+     apply (simp add: option.case_eq_if, metis v.simps(17))
+    apply (simp add: option.case_eq_if, metis v.simps(18))
+   apply (simp add: option.case_eq_if, metis v.simps(19))
+  apply (simp add: option.case_eq_if, metis v.simps(20))
+  done
+
 lemma store_preserved1:
   assumes "\<lparr>s;vs;es\<rparr> \<leadsto>_i \<lparr>s';vs';es'\<rparr>"
           "store_typing s \<S>"
@@ -252,7 +262,7 @@ proof -
   have "arity_1_result e = typeof (v')"
     using assms(1,3)
     apply (cases rule: reduce_simple.cases)
-             apply (simp_all add: arity_1_result_def wasm_deserialise_type t_cvt)
+             apply (simp_all add: arity_1_result_def wasm_deserialise_type t_cvt t_cvt_sat)
            apply (auto simp add: typeof_def)
     done
   hence "\<C> \<turnstile> [C v'] : ([] _> [arity_1_result e])"
@@ -1156,6 +1166,11 @@ next
   case (convert_None t1 v t2 sx)
   then show ?thesis
     using e_typing_s_typing.intros(4)
+    by simp
+next
+  case (convert_sat t1 v t2 sx v')
+  then show ?thesis
+    using assms(1, 3) types_preserved_unop_testop_cvtop
     by simp
 next
   case (reinterpret t1 v t2)
@@ -2446,6 +2461,13 @@ next
       unfolding types_agree_def
       by fastforce
   qed
+next
+  case (convert_sat t1 t2 sx \<C>)
+  obtain v where cs_def:"cs = [$ C v]" "typeof v = t2"
+    using const_typeof const_of_const_list[OF _ convert_sat(6)] e_type_const_list[OF convert_sat(6,3)]
+    by fastforce
+  thus ?case
+    sorry
 next
   case (reinterpret t1 t2 \<C>)
   obtain v where cs_def:"cs = [$ C v]" "typeof v = t2"

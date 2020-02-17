@@ -764,6 +764,52 @@ proof (cases ves)
   qed (cases x301; cases a; auto)
 qed (cases x301; auto)
 
+lemma run_one_step_basic_cvtop_sat_result_some:
+ assumes "run_one_step d i (s,vs,ves,$Cvtop t2 ConvertSat t1 (Some sxs)) = (s', vs', res)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
+  using assms
+proof (cases ves)
+  fix a ves'
+  assume "ves = a#ves'"
+  thus ?thesis
+    using assms
+    by (cases "cvt_sat t2 sxs a"; cases "types_agree t1 a") auto
+qed auto
+
+lemma run_one_step_basic_cvtop_sat_result_none:
+  assumes "run_one_step d i (s,vs,ves,$Cvtop t2 ConvertSat t1 None) = (s', vs', res)"
+  shows "\<exists>e. res = RSCrash e"
+  using assms
+proof (cases ves)
+  fix a ves'
+  assume "ves = a#ves'"
+  thus ?thesis
+    using assms
+    by (cases "types_agree t1 a") auto
+qed auto
+
+lemma run_one_step_basic_cvtop_sat_result:
+ assumes "run_one_step d i (s,vs,ves,$Cvtop t2 ConvertSat t1 sx) = (s', vs', res)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
+  using assms
+proof (cases ves)
+  fix a ves'
+  assume "ves = a#ves'"
+  thus ?thesis
+    using assms
+  proof (cases sx)
+    case None
+    then show ?thesis
+      using assms
+      using run_one_step_basic_cvtop_sat_result_none by blast
+  next
+    case (Some a)
+    then show ?thesis
+      using assms
+      using run_one_step_basic_cvtop_sat_result_some by blast
+  qed
+qed auto
+  
 lemma run_one_step_basic_cvtop_result:
   assumes "run_one_step d i (s,vs,ves,$Cvtop t2 x312 t1 sx) = (s', vs', res)"
   shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
@@ -774,6 +820,12 @@ proof (cases ves; cases x312)
   thus ?thesis
     using assms
     by (cases "cvt t2 sx a"; cases "types_agree t1 a") auto
+next
+  fix a ves'
+  assume "ves = a#ves'" and "x312 = ConvertSat" 
+  thus ?thesis
+    using assms
+    using run_one_step_basic_cvtop_sat_result by blast
 next
   fix a ves'
   assume "ves = a#ves'" and "x312 = Reinterpret" 
@@ -2107,13 +2159,35 @@ proof -
                 is_const_list_vs_to_es_list[of "rev list"]
           by (cases "(cvt t2 sx a)") auto
       next
+        case ConvertSat
+        case True
+        thus ?thesis
+          using ConvertSat assms Cvtop Cons
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(19)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(20)]]
+                is_const_list_vs_to_es_list[of "rev list"]
+        proof (cases sx)
+          case None
+          then show ?thesis
+            using ConvertSat Cvtop assms run_one_step_basic_cvtop_sat_result_none by blast
+        next
+          case (Some sxs)
+          then show ?thesis
+            using ConvertSat assms Cvtop Cons run_one_step_basic_cvtop_sat_result_some
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(19)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(20)]]
+                is_const_list_vs_to_es_list[of "rev list"]
+            sorry
+        qed
+      next
         case Reinterpret
         case True
         thus ?thesis
           using Reinterpret assms Cvtop Cons
                 progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(21)]]
                 is_const_list_vs_to_es_list[of "rev list"]
-          by (cases sx) auto
+          
+        sorry
       qed auto
     qed (cases cvtop; auto)
   qed
