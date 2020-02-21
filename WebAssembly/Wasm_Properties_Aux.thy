@@ -337,6 +337,7 @@ definition arity_1_result :: "b_e \<Rightarrow> t" where
                          | Unop_f t _ \<Rightarrow> t
                          | Testop t _ \<Rightarrow> T_i32
                          | Cvtop t1 Convert _ _ \<Rightarrow> t1
+                         | Cvtop t1 ConvertSat _ _ \<Rightarrow> t1
                          | Cvtop t1 Reinterpret _ _ \<Rightarrow> t1)"
 
 lemma b_e_type_unop_testop:
@@ -353,6 +354,7 @@ lemma b_e_type_cvtop:
           "e = Cvtop t1 cvtop t sx"
   shows "\<exists>ts''. ts = ts''@[t] \<and> ts' = ts''@[arity_1_result e]"
         "cvtop = Convert \<Longrightarrow> (t1 \<noteq> t) \<and> (sx = None) = ((is_float_t t1 \<and> is_float_t t) \<or> (is_int_t t1 \<and> is_int_t t \<and> (t_length t1 < t_length t)))"
+        "cvtop = ConvertSat \<Longrightarrow> (t1 \<noteq> t) \<and> (sx = None) = ((is_float_t t1 \<and> is_float_t t) \<or> (is_int_t t1 \<and> is_int_t t \<and> (t_length t1 < t_length t)))"
         "cvtop = Reinterpret \<Longrightarrow> (t1 \<noteq> t) \<and> t_length t1 = t_length t"
   using assms
   unfolding arity_1_result_def

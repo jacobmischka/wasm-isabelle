@@ -253,17 +253,14 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                   else
                     (s, vs, crash_error))
            | _ \<Rightarrow> (s, vs, crash_error))
-      | $(Cvtop t2 ConvertSat t1 sx) \<Rightarrow>
+     | $(Cvtop t2 ConvertSat t1 sx) \<Rightarrow>
           (case ves of
              v#ves' \<Rightarrow>
-                (case sx of
-                      Some sxs \<Rightarrow>
-                        (if (types_agree t1 v)
-                          then
-                             (s, vs, RSNormal (vs_to_es ((cvt_sat t2 sxs v)#ves')))
-                          else
-                            (s, vs, crash_error))
-                     | _ \<Rightarrow> (s, vs, crash_error))
+               (if (types_agree t1 v)
+                  then
+                    expect (cvt_sat t2 sx v) (\<lambda>v'. (s, vs, RSNormal (vs_to_es (v'#ves')))) (s, vs, RSNormal ((vs_to_es ves')@[Trap]))
+                  else
+                    (s, vs, crash_error))
            | _ \<Rightarrow> (s, vs, crash_error))
       | $(Cvtop t2 Reinterpret t1 sx) \<Rightarrow>
           (case ves of

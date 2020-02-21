@@ -105,6 +105,9 @@ foldl_Cons: "foldl f a (x # xs) = foldl f (f a x) xs"
 | "check_single \<C> (Cvtop t1 Convert t2 sx) ts = (if (convert_cond t1 t2 sx)
                                                    then type_update ts [TSome t2] (Type [t1])
                                                    else Bot)"
+| "check_single \<C> (Cvtop t1 ConvertSat t2 sx) ts = (if (convert_cond t1 t2 sx)
+                                                         then type_update ts [TSome t2] (Type [t1])
+                                                         else Bot)"
   (* reinterpret *)
 | "check_single \<C> (Cvtop t1 Reinterpret t2 sx) ts = (if ((t1 \<noteq> t2) \<and> t_length t1 = t_length t2 \<and> sx = None)
                                                          then type_update ts [TSome t2] (Type [t1])

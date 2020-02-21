@@ -2187,7 +2187,7 @@ proof -
                 progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(21)]]
                 is_const_list_vs_to_es_list[of "rev list"]
           
-        sorry
+          by (cases sx) auto
       qed auto
     qed (cases cvtop; auto)
   qed

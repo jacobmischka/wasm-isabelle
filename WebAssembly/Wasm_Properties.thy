@@ -14,14 +14,14 @@ lemma t_cvt: assumes "cvt t sx v = Some v'" shows "t = typeof v'"
   apply (simp add: option.case_eq_if, metis option.discI option.inject v.simps(20))
   done
 
-lemma t_cvt_sat: assumes "cvt_sat t sx v = v'" shows "t = typeof v'"
+lemma t_cvt_sat: assumes "cvt_sat t sx v = Some v'" shows "t = typeof v'"
   using assms
   unfolding cvt_sat_def typeof_def
   apply (cases t)
-     apply (simp add: option.case_eq_if, metis v.simps(17))
-    apply (simp add: option.case_eq_if, metis v.simps(18))
-   apply (simp add: option.case_eq_if, metis v.simps(19))
-  apply (simp add: option.case_eq_if, metis v.simps(20))
+      apply (simp add: option.case_eq_if, metis option.discI option.inject v.simps(17))
+    apply (simp add: option.case_eq_if, metis option.discI option.inject v.simps(18))
+   apply (simp add: option.case_eq_if, metis option.discI option.inject v.simps(19))
+  apply (simp add: option.case_eq_if, metis option.discI option.inject v.simps(20))
   done
 
 lemma store_preserved1:
@@ -227,6 +227,7 @@ lemma typeof_cvtop:
           "e = Cvtop t1 cvtop t sx"
   shows "(typeof v) = t"
         "cvtop = Convert \<Longrightarrow> (t1 \<noteq> t) \<and> ((sx = None) = ((is_float_t t1 \<and> is_float_t t) \<or> (is_int_t t1 \<and> is_int_t t \<and> (t_length t1 < t_length t))))"
+        "cvtop = ConvertSat \<Longrightarrow> (t1 \<noteq> t) \<and> (sx = None) = ((is_float_t t1 \<and> is_float_t t) \<or> (is_int_t t1 \<and> is_int_t t \<and> (t_length t1 < t_length t)))"
         "cvtop = Reinterpret \<Longrightarrow> (t1 \<noteq> t) \<and> t_length t1 = t_length t"
 proof -
   have  "\<C> \<turnstile> [C v, e] : (ts _> ts')"
@@ -237,6 +238,7 @@ proof -
     by fastforce
   show "(typeof v) = t"
        "cvtop = Convert \<Longrightarrow> (t1 \<noteq> t) \<and> (sx = None) = ((is_float_t t1 \<and> is_float_t t) \<or> (is_int_t t1 \<and> is_int_t t \<and> (t_length t1 < t_length t)))"
+       "cvtop = ConvertSat \<Longrightarrow> (t1 \<noteq> t) \<and> (sx = None) = ((is_float_t t1 \<and> is_float_t t) \<or> (is_int_t t1 \<and> is_int_t t \<and> (t_length t1 < t_length t)))"
        "cvtop = Reinterpret \<Longrightarrow> (t1 \<noteq> t) \<and> t_length t1 = t_length t"
     using b_e_type_value[OF ts''_def(1)] b_e_type_cvtop[OF ts''_def(2) assms(2)]
     by simp_all
@@ -1168,9 +1170,14 @@ next
     using e_typing_s_typing.intros(4)
     by simp
 next
-  case (convert_sat t1 v t2 sx v')
+  case (convert_sat_Some t1 v t2 sx v')
   then show ?thesis
     using assms(1, 3) types_preserved_unop_testop_cvtop
+    by simp
+next
+  case (convert_sat_None t1 v t2 sx)
+  then show ?thesis
+    using e_typing_s_typing.intros(4)
     by simp
 next
   case (reinterpret t1 v t2)
@@ -2467,7 +2474,19 @@ next
     using const_typeof const_of_const_list[OF _ convert_sat(6)] e_type_const_list[OF convert_sat(6,3)]
     by fastforce
   thus ?case
-    sorry
+  proof (cases "cvt_sat t1 sx v")
+    case None
+    thus ?thesis
+      using reduce.intros(1)[OF reduce_simple.convert_sat_None[OF _ None]] cs_def
+      unfolding types_agree_def
+      by fastforce
+  next
+    case (Some a)
+    thus ?thesis
+      using reduce.intros(1)[OF reduce_simple.convert_sat_Some[OF _ Some]] cs_def
+      unfolding types_agree_def
+      by fastforce
+  qed
 next
   case (reinterpret t1 t2 \<C>)
   obtain v where cs_def:"cs = [$ C v]" "typeof v = t2"

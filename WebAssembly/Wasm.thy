@@ -13,7 +13,7 @@ inductive b_e_typing :: "[t_context, b_e list, tf] \<Rightarrow> bool" ("_ \<tur
 | relop_f:"is_float_t t \<Longrightarrow> \<C> \<turnstile> [Relop_f t _] : ([t,t] _> [T_i32])"
   \<comment> \<open>\<open>convert\<close>\<close>
 | convert:"\<lbrakk>(t1 \<noteq> t2); (sx = None) = ((is_float_t t1 \<and> is_float_t t2) \<or> (is_int_t t1 \<and> is_int_t t2 \<and> (t_length t1 < t_length t2)))\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Cvtop t1 Convert t2 sx] : ([t2] _> [t1])"
-| convert_sat:"\<lbrakk>(t1 \<noteq> t2); (sx = Some sxs) = ((is_float_t t1 \<and> is_float_t t2) \<or> (is_int_t t1 \<and> is_int_t t2 \<and> (t_length t1 < t_length t2)))\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Cvtop t1 ConvertSat t2 sx] : ([t2] _> [t1])"
+| convert_sat:"\<lbrakk>(t1 \<noteq> t2); (sx = None) = ((is_float_t t1 \<and> is_float_t t2) \<or> (is_int_t t1 \<and> is_int_t t2 \<and> (t_length t1 < t_length t2)))\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Cvtop t1 ConvertSat t2 sx] : ([t2] _> [t1])"
   \<comment> \<open>\<open>reinterpret\<close>\<close>
 | reinterpret:"\<lbrakk>(t1 \<noteq> t2); t_length t1 = t_length t2\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Cvtop t1 Reinterpret t2 None] : ([t2] _> [t1])"
   \<comment> \<open>\<open>unreachable, nop, drop, select\<close>\<close>
@@ -143,7 +143,8 @@ inductive reduce_simple :: "[e list, e list] \<Rightarrow> bool" ("\<lparr>_\<rp
   \<comment> \<open>\<open>convert\<close>\<close>
 | convert_Some:"\<lbrakk>types_agree t1 v; cvt t2 sx v = (Some v')\<rbrakk> \<Longrightarrow> \<lparr>[$(C v), $(Cvtop t2 Convert t1 sx)]\<rparr> \<leadsto> \<lparr>[$(C v')]\<rparr>"
 | convert_None:"\<lbrakk>types_agree t1 v; cvt t2 sx v = None\<rbrakk> \<Longrightarrow> \<lparr>[$(C v), $(Cvtop t2 Convert t1 sx)]\<rparr> \<leadsto> \<lparr>[Trap]\<rparr>"
-| convert_sat:"\<lbrakk>types_agree t1 v; cvt_sat t2 sx v = v'\<rbrakk> \<Longrightarrow> \<lparr>[$(C v), $(Cvtop t2 Convert t1 (Some sx))]\<rparr> \<leadsto> \<lparr>[$(C v')]\<rparr>"
+| convert_sat_Some:"\<lbrakk>types_agree t1 v; cvt_sat t2 sx v = (Some v')\<rbrakk> \<Longrightarrow> \<lparr>[$(C v), $(Cvtop t2 ConvertSat t1 sx)]\<rparr> \<leadsto> \<lparr>[$(C v')]\<rparr>"
+| convert_sat_None:"\<lbrakk>types_agree t1 v; cvt_sat t2 sx v = None\<rbrakk> \<Longrightarrow> \<lparr>[$(C v), $(Cvtop t2 ConvertSat t1 sx)]\<rparr> \<leadsto> \<lparr>[Trap]\<rparr>"
   \<comment> \<open>\<open>reinterpret\<close>\<close>
 | reinterpret:"types_agree t1 v \<Longrightarrow> \<lparr>[$(C v), $(Cvtop t2 Reinterpret t1 None)]\<rparr> \<leadsto> \<lparr>[$(C (wasm_deserialise (bits v) t2))]\<rparr>"
   \<comment> \<open>\<open>unreachable\<close>\<close>
