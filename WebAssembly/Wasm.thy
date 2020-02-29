@@ -6,6 +6,7 @@ inductive b_e_typing :: "[t_context, b_e list, tf] \<Rightarrow> bool" ("_ \<tur
   const:"\<C> \<turnstile> [C v]         : ([]    _> [(typeof v)])"
 | unop_i:"is_int_t t   \<Longrightarrow> \<C> \<turnstile> [Unop_i t _]  : ([t]   _> [t])"
 | unop_f:"is_float_t t \<Longrightarrow> \<C> \<turnstile> [Unop_f t _]  : ([t]   _> [t])"
+| extendsop:"is_int_t t   \<Longrightarrow> \<C> \<turnstile> [ExtendS t _]  : ([t]   _> [t])"
 | binop_i:"is_int_t t   \<Longrightarrow> \<C> \<turnstile> [Binop_i t iop] : ([t,t] _> [t])"
 | binop_f:"is_float_t t \<Longrightarrow> \<C> \<turnstile> [Binop_f t _] : ([t,t] _> [t])"
 | testop:"is_int_t t   \<Longrightarrow> \<C> \<turnstile> [Testop t _]  : ([t]   _> [T_i32])"
@@ -119,6 +120,9 @@ inductive reduce_simple :: "[e list, e list] \<Rightarrow> bool" ("\<lparr>_\<rp
   \<comment> \<open>\<open>float unary ops\<close>\<close>
 | unop_f32:"\<lparr>[$C (ConstFloat32 c), $(Unop_f T_f32 fop)]\<rparr> \<leadsto> \<lparr>[$C (ConstFloat32 (app_unop_f fop c))]\<rparr>"
 | unop_f64:"\<lparr>[$C (ConstFloat64 c), $(Unop_f T_f64 fop)]\<rparr> \<leadsto> \<lparr>[$C (ConstFloat64 (app_unop_f fop c))]\<rparr>"
+  \<comment> \<open>\<open>integer sign-extension ops\<close>\<close>
+| extendsop_i32:"\<lparr>[$C (ConstInt32 c), $(ExtendS T_i32 extendsop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt32 (app_extendsop iop c))]\<rparr>"
+| extendsop_i64:"\<lparr>[$C (ConstInt64 c), $(ExtendS T_i64 extendsop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt64 (app_extendsop iop c))]\<rparr>"
   \<comment> \<open>\<open>int32 binary ops\<close>\<close>
 | binop_i32_Some:"\<lbrakk>app_binop_i iop c1 c2 = (Some c)\<rbrakk> \<Longrightarrow> \<lparr>[$C (ConstInt32 c1), $C (ConstInt32 c2), $(Binop_i T_i32 iop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt32 c)]\<rparr>"
 | binop_i32_None:"\<lbrakk>app_binop_i iop c1 c2 = None\<rbrakk> \<Longrightarrow> \<lparr>[$C (ConstInt32 c1), $C (ConstInt32 c2), $(Binop_i T_i32 iop)]\<rparr> \<leadsto> \<lparr>[Trap]\<rparr>"

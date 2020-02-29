@@ -207,7 +207,7 @@ qed
 
 lemma typeof_unop_testop:
   assumes "\<S>\<bullet>\<C> \<turnstile> [$C v, $e] : (ts _> ts')"
-          "(e = (Unop_i t iop)) \<or> (e = (Unop_f t fop)) \<or> (e = (Testop t testop))"
+          "(e = (Unop_i t iop)) \<or> (e = (Unop_f t fop)) \<or> (e = (ExtendS t extendsop)) \<or> (e = (Testop t testop))"
   shows "(typeof v) = t"
         "e = (Unop_f t fop) \<Longrightarrow> is_float_t t"
 proof -
@@ -247,7 +247,7 @@ qed
 lemma types_preserved_unop_testop_cvtop:
   assumes "\<lparr>[$C v, $e]\<rparr> \<leadsto> \<lparr>[$C v']\<rparr>"
           "\<S>\<bullet>\<C> \<turnstile> [$C v, $e] : (ts _> ts')"
-          "(e = (Unop_i t iop)) \<or> (e = (Unop_f t fop)) \<or> (e = (Testop t testop))  \<or> (e = (Cvtop t2 cvtop t sx))"
+          "(e = (Unop_i t iop)) \<or> (e = (Unop_f t fop))\<or> (e = (ExtendS t extendsop)) \<or> (e = (Testop t testop))  \<or> (e = (Cvtop t2 cvtop t sx))"
   shows "\<S>\<bullet>\<C> \<turnstile> [$C v'] : (ts _> ts')"
 proof -
   have  "\<C> \<turnstile> [C v, e] : (ts _> ts')"
@@ -1090,6 +1090,16 @@ next
     by simp
 next
   case (unop_f64 c fop)
+  thus ?thesis
+    using assms(1, 3) types_preserved_unop_testop_cvtop
+    by simp
+next
+  case (extendsop_i32 c extendsop)
+  thus ?thesis
+    using assms(1,3) types_preserved_unop_testop_cvtop
+    by simp
+next
+  case (extendsop_i64 c extendsop)
   thus ?thesis
     using assms(1, 3) types_preserved_unop_testop_cvtop
     by simp
@@ -2203,20 +2213,24 @@ lemma progress_unop_testop_i:
   assumes "\<S>\<bullet>\<C> \<turnstile> cs : ([] _> [t])"
           "is_int_t t"
           "const_list cs"
-          "e = Unop_i t iop \<or> e = Testop t testop"
+          "e = Unop_i t iop \<or> e = ExtendS t extendsop \<or> e = Testop t testop"
   shows "\<exists>a s' vs' es'. \<lparr>s;vs;cs@([$e])\<rparr> \<leadsto>_i \<lparr>s';vs';es'\<rparr>"
   using assms(2)
 proof (cases t)
   case T_i32
   thus ?thesis
     using  const_of_i32[OF assms(3)] assms(1,4)
-          reduce.intros(1)[OF reduce_simple.intros(1)] reduce.intros(1)[OF reduce_simple.intros(13)]
+          reduce.intros(1)[OF reduce_simple.intros(1)] 
+          reduce.intros(1)[OF reduce_simple.intros(5)]
+          reduce.intros(1)[OF reduce_simple.intros(15)]
     by fastforce      
 next
   case T_i64
   thus ?thesis
     using const_of_i64[OF assms(3)] assms(1,4)
-          reduce.intros(1)[OF reduce_simple.intros(2)] reduce.intros(1)[OF reduce_simple.intros(14)]
+          reduce.intros(1)[OF reduce_simple.intros(2)]
+          reduce.intros(1)[OF reduce_simple.intros(6)]
+          reduce.intros(1)[OF reduce_simple.intros(16)]
     by fastforce
 qed (simp_all add: is_int_t_def)
 
@@ -2308,13 +2322,13 @@ proof (cases t)
       by blast
     thus ?thesis
       apply (cases "app_binop_i iop c1 c2")
-       apply (metis reduce_simple.intros(6) reduce.intros(1) T_i32 True append_Cons append_Nil)
-      apply (metis reduce_simple.intros(5) reduce.intros(1) T_i32 True append_Cons append_Nil)
+       apply (metis reduce_simple.intros(8) reduce.intros(1) T_i32 True append_Cons append_Nil)
+      apply (metis reduce_simple.intros(7) reduce.intros(1) T_i32 True append_Cons append_Nil)
       done
   next
     case False
     thus ?thesis
-    using reduce_simple.intros(15) assms(4) reduce.intros(1) cs_def T_i32
+    using reduce_simple.intros(17) assms(4) reduce.intros(1) cs_def T_i32
     by fastforce
   qed
 next
@@ -2331,13 +2345,13 @@ next
       by blast
     thus ?thesis
       apply (cases "app_binop_i iop c1 c2")
-       apply (metis reduce_simple.intros(8) reduce.intros(1) T_i64 True append_Cons append_Nil)
-      apply (metis reduce_simple.intros(7) reduce.intros(1) T_i64 True append_Cons append_Nil)
+       apply (metis reduce_simple.intros(10) reduce.intros(1) T_i64 True append_Cons append_Nil)
+      apply (metis reduce_simple.intros(9) reduce.intros(1) T_i64 True append_Cons append_Nil)
       done
   next
     case False
     thus ?thesis
-    using reduce_simple.intros(16) assms(4) reduce.intros(1) cs_def T_i64
+    using reduce_simple.intros(18) assms(4) reduce.intros(1) cs_def T_i64
     by fastforce
   qed
 qed (simp_all add: is_int_t_def)
@@ -2363,13 +2377,13 @@ proof (cases t)
       by blast
     thus ?thesis
       apply (cases "app_binop_f fop c1 c2")
-       apply (metis reduce_simple.intros(10) reduce.intros(1) T_f32 True append_Cons append_Nil)
-      apply (metis reduce_simple.intros(9) reduce.intros(1) T_f32 True append_Cons append_Nil)
+       apply (metis reduce_simple.intros(12) reduce.intros(1) T_f32 True append_Cons append_Nil)
+      apply (metis reduce_simple.intros(11) reduce.intros(1) T_f32 True append_Cons append_Nil)
     done
   next
     case False
     thus ?thesis
-    using reduce_simple.intros(17) assms(4) reduce.intros(1) cs_def T_f32
+    using reduce_simple.intros(19) assms(4) reduce.intros(1) cs_def T_f32
     by fastforce
   qed
 next
@@ -2386,13 +2400,13 @@ next
       by blast
     thus ?thesis
       apply (cases "app_binop_f fop c1 c2")
-       apply (metis reduce_simple.intros(12) reduce.intros(1) T_f64 True append_Cons append_Nil)
-      apply (metis reduce_simple.intros(11) reduce.intros(1) T_f64 True append_Cons append_Nil)
+       apply (metis reduce_simple.intros(14) reduce.intros(1) T_f64 True append_Cons append_Nil)
+      apply (metis reduce_simple.intros(13) reduce.intros(1) T_f64 True append_Cons append_Nil)
     done
   next
     case False
     thus ?thesis
-      using reduce_simple.intros(18) assms(4) reduce.intros(1) cs_def T_f64
+      using reduce_simple.intros(20) assms(4) reduce.intros(1) cs_def T_f64
     by fastforce
   qed
 qed (simp_all add: is_float_t_def)
@@ -2423,6 +2437,11 @@ next
   case (unop_f t \<C> uv)
   thus ?case
     using progress_unop_f[OF unop_f(2,1,5)]
+    by fastforce
+next
+  case (extendsop t \<C> uu)
+  thus ?case
+    using progress_unop_testop_i[OF extendsop(2,1)]
     by fastforce
 next
   case (binop_i t \<C> uw)

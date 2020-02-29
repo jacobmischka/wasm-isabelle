@@ -9,6 +9,9 @@ class wasm_int = wasm_base +
   fixes int_clz :: "'a \<Rightarrow> 'a"
   fixes int_ctz :: "'a \<Rightarrow> 'a"
   fixes int_popcnt :: "'a \<Rightarrow> 'a"
+  fixes int_extend8_s :: "'a \<Rightarrow> 'a"
+  fixes int_extend16_s :: "'a \<Rightarrow> 'a"
+  fixes i64_extend32_s :: "'a \<Rightarrow> 'a"
   (* binops *)
   fixes int_add :: "'a \<Rightarrow> 'a \<Rightarrow> 'a"
   fixes int_sub :: "'a \<Rightarrow> 'a \<Rightarrow> 'a"

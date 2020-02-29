@@ -637,6 +637,17 @@ proof (cases ves)
     by (cases x251; cases a) auto
 qed (cases x251; auto)
 
+lemma run_one_step_basic_extend_s_result:
+  assumes "run_one_step d i (s,vs,ves,$ExtendS x241 x242) = (s', vs', res)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
+  using assms
+proof (cases ves)
+  case (Cons a list)
+  thus ?thesis
+    using assms
+    by (cases x241; cases a) auto
+qed (cases x241; auto)
+
 lemma run_one_step_basic_binop_i_result:
   assumes "run_one_step d i (s,vs,ves,$Binop_i x261 x262) = (s', vs', res)"
   shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
@@ -1004,32 +1015,37 @@ proof (cases e)
       using run_one_step_basic_unop_f_result assms Basic
       by fastforce
   next
-    case (Binop_i x261 x262)
+    case (ExtendS x261 x262)
+    thus ?thesis
+      using run_one_step_basic_extend_s_result assms Basic
+      by fastforce
+  next
+    case (Binop_i x271 x272)
     thus ?thesis
       using run_one_step_basic_binop_i_result assms Basic
       by fastforce
   next
-    case (Binop_f x271 x272)
+    case (Binop_f x281 x282)
     thus ?thesis
       using run_one_step_basic_binop_f_result assms Basic
       by fastforce
   next
-    case (Testop x281 x282)
+    case (Testop x291 x292)
     thus ?thesis
       using run_one_step_basic_testop_result assms Basic
       by fastforce
   next
-    case (Relop_i x291 x292)
+    case (Relop_i x301 x302)
     thus ?thesis
       using run_one_step_basic_relop_i_result assms Basic
       by fastforce
   next
-    case (Relop_f x301 x302)
+    case (Relop_f x311 x312)
     thus ?thesis
       using run_one_step_basic_relop_f_result assms Basic
       by fastforce
   next
-    case (Cvtop x311 x312 x313 x314)
+    case (Cvtop x321 x322 x323 x324)
     thus ?thesis
       using run_one_step_basic_cvtop_result assms Basic
       by fastforce
@@ -1185,6 +1201,11 @@ proof (cases e)
     case (Unop_f x251 x252)
     thus ?thesis
       using run_one_step_basic_unop_f_result assms Basic
+      by fastforce
+  next
+    case (ExtendS x241 x242)
+    thus ?thesis
+      using run_one_step_basic_extend_s_result assms Basic
       by fastforce
   next
     case (Binop_i x261 x262)
@@ -1525,10 +1546,10 @@ qed
 
 lemma run_step_basic_unop_testop_sound:
   assumes "(run_one_step d i (s,vs,ves,$b_e) = (s', vs', RSNormal es'))"
-          "b_e = Unop_i t iop \<or> b_e = Unop_f t fop \<or> b_e = Testop t testop"
+          "b_e = Unop_i t iop \<or> b_e = Unop_f t fop \<or> b_e = ExtendS t extendsop \<or> b_e = Testop t testop"
   shows "\<lparr>s;vs;(vs_to_es ves)@[$b_e]\<rparr> \<leadsto>_ i \<lparr>s';vs';es'\<rparr>"
 proof -
-  consider (1) "b_e = Unop_i t iop" | (2) "b_e = Unop_f t fop" | (3) "b_e = Testop t testop"
+  consider (1) "b_e = Unop_i t iop" | (2) "b_e = Unop_f t fop" | (3) "b_e = ExtendS t extendsop" | (4) "b_e = Testop t testop"
     using assms(2)
     by blast
   note b_e_cases = this
@@ -1545,7 +1566,8 @@ proof -
         using assms(1) Cons ConstInt32
            is_const_list_vs_to_es_list[of "rev list"]
             progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(1)]]
-            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(13)]]
+            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(5)]]
+            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(15)]]
         by (cases rule: b_e_cases) auto
     next
       case (ConstInt64 x2)
@@ -1554,7 +1576,8 @@ proof -
         using assms(1) Cons ConstInt64
            is_const_list_vs_to_es_list[of "rev list"]
             progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(2)]]
-            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(14)]]
+            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(6)]]
+            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(16)]]
         by (cases rule: b_e_cases) auto
     next
       case (ConstFloat32 x3)
@@ -1605,9 +1628,9 @@ proof -
         thus ?thesis
           using assms(1) Cons outer_Cons
              is_const_list_vs_to_es_list[of "rev list'"]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(5)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(6)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(15)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(7)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(8)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(17)]]
           by (cases rule: b_e_cases; cases "app_binop_i iop c2 c1") auto
       next
         fix c1 c2
@@ -1615,9 +1638,9 @@ proof -
         thus ?thesis
           using assms(1) Cons outer_Cons
              is_const_list_vs_to_es_list[of "rev list'"]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(7)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(8)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(16)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(9)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(10)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(18)]]
           by (cases rule: b_e_cases; cases "app_binop_i iop c2 c1") auto
       next
         fix c1 c2
@@ -1625,9 +1648,9 @@ proof -
         thus ?thesis
           using assms(1) Cons outer_Cons
              is_const_list_vs_to_es_list[of "rev list'"]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(9)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(10)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(17)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(11)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(12)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(19)]]
           by (cases rule: b_e_cases; cases "app_binop_f fop c2 c1") auto
       next
         fix c1 c2
@@ -1635,9 +1658,9 @@ proof -
         thus ?thesis
           using assms(1) Cons outer_Cons
              is_const_list_vs_to_es_list[of "rev list'"]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(11)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(12)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(18)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(13)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(14)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(20)]]
           by (cases rule: b_e_cases; cases "app_binop_f fop c2 c1") auto
       qed (cases rule: b_e_cases; auto)+
     qed (cases rule: b_e_cases; cases t; cases v1; auto)
@@ -1653,14 +1676,14 @@ proof -
     case Unreachable
     thus ?thesis
       using is_const_list_vs_to_es_list[of "rev ves"]
-            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(24)]]
+            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(26)]]
             assms
       by fastforce
   next
     case Nop
     thus ?thesis
       using is_const_list_vs_to_es_list[of "rev ves"]
-            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(25)]]
+            progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(27)]]
             assms
       by fastforce
   next
@@ -1673,7 +1696,7 @@ proof -
         by fastforce
       thus ?thesis
         using is_const_list_vs_to_es_list[of "rev list"]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(26)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(28)]]
               Drop assms Cons
         by auto
     qed auto
@@ -1698,7 +1721,7 @@ proof -
           thus ?thesis
             using is_const_list_vs_to_es_list[of "rev list''"]
                   progress_L0_left[OF reduce.intros(1)]
-                  reduce_simple.intros(27,28)
+                  reduce_simple.intros(29,30)
                   assms outer_outer_cons outer_cons Cons ConstInt32 Select
             by (cases "int_eq x1a 0") auto
         qed auto
@@ -1723,7 +1746,7 @@ proof -
           by auto
         moreover
         have "\<lparr>s;vs;(vs_to_es ves'')@(vs_to_es ves')@[$Block x51 x52]\<rparr> \<leadsto>_i \<lparr>s;vs;(vs_to_es ves'')@[Label (length t2s) [] (vs_to_es ves' @ ($* x52))]\<rparr>"
-          using Tf reduce_simple.intros(29) split_n_length[OF Pair True] progress_L0_left[OF reduce.intros(1)]
+          using Tf reduce_simple.intros(31) split_n_length[OF Pair True] progress_L0_left[OF reduce.intros(1)]
                 is_const_list_vs_to_es_list[of "rev ves'"] is_const_list_vs_to_es_list[of "rev ves''"]
           by fastforce
         ultimately
@@ -1751,7 +1774,7 @@ proof -
           by auto
         moreover
         have "\<lparr>s;vs;(vs_to_es ves'')@(vs_to_es ves')@[$Loop x61 x62]\<rparr> \<leadsto>_i \<lparr>s;vs;(vs_to_es ves'')@[Label (length t1s) [$Loop x61 x62] (vs_to_es ves' @ ($* x62))]\<rparr>"
-          using Tf reduce_simple.intros(30) split_n_length[OF Pair True] progress_L0_left[OF reduce.intros(1)]
+          using Tf reduce_simple.intros(32) split_n_length[OF Pair True] progress_L0_left[OF reduce.intros(1)]
                 is_const_list_vs_to_es_list[of "rev ves'"] is_const_list_vs_to_es_list[of "rev ves''"]
           by fastforce
         ultimately
@@ -1776,7 +1799,7 @@ proof -
       thus ?thesis
         using progress_L0_left[OF reduce.intros(1)]
               is_const_list_vs_to_es_list[of "rev list"]
-              reduce_simple.intros(31,32)
+              reduce_simple.intros(33,34)
               assms Cons If ConstInt32
         by (cases "int_eq x1 0") auto
       qed auto
@@ -1800,8 +1823,8 @@ proof -
         unfolding Cons
         by simp
       thus ?thesis
-        using progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(36)]]
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(37)]]
+        using progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(38)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(39)]]
               is_const_list_vs_to_es_list[of "rev list"]
               assms Cons Br_if ConstInt32
         by (cases "int_eq x1 0") auto
@@ -1818,8 +1841,8 @@ proof -
       proof (cases a)
         case (ConstInt32 x1)
         thus ?thesis
-          using progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(38)]]
-                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(39)]]
+          using progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(40)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(41)]]
                 is_const_list_vs_to_es_list[of "rev list"]
                 assms Br_table Cons
           by (cases "(nat_of_int x1) < length x10") auto
@@ -1920,7 +1943,7 @@ proof -
       case (Cons a list)
       thus ?thesis
         using assms Tee_local
-              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(43)]]
+              progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(45)]]
                               is_const_list_vs_to_es_list[of "rev list"]
         by (auto simp add: is_const_def)
     qed auto
@@ -2071,6 +2094,11 @@ proof -
       using run_step_basic_unop_testop_sound[OF assms]
       by fastforce
   next
+    case (ExtendS x241 x242)
+    thus ?thesis
+      using run_step_basic_unop_testop_sound[OF assms]
+      by fastforce
+  next
     case (Binop_i x261 x262)
     thus ?thesis
       using run_step_basic_binop_relop_sound[OF assms]
@@ -2108,8 +2136,8 @@ proof -
         case True
         thus ?thesis
           using Convert assms Cvtop Cons
-                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(19)]]
-                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(20)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(21)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(22)]]
                 is_const_list_vs_to_es_list[of "rev list"]
           by (cases "(cvt t2 sx a)") auto
       next
@@ -2117,8 +2145,8 @@ proof -
         case True
         thus ?thesis
           using ConvertSat assms Cvtop Cons
-                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(21)]]
-                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(22)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(23)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(24)]]
                 is_const_list_vs_to_es_list[of "rev list"]
           by (cases "(cvt_sat t2 sx a)") auto
       next
@@ -2126,7 +2154,7 @@ proof -
         case True
         thus ?thesis
           using Reinterpret assms Cvtop Cons
-                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(23)]]
+                progress_L0_left[OF reduce.intros(1)[OF reduce_simple.intros(25)]]
                 is_const_list_vs_to_es_list[of "rev list"]
           
           by (cases sx) auto
@@ -2303,7 +2331,7 @@ proof -
         case True
         thus ?thesis
           using 2(3) is_const_list_vs_to_es_list
-                Label progress_L0[OF reduce.intros(1)[OF reduce_simple.intros(34)]]
+                Label progress_L0[OF reduce.intros(1)[OF reduce_simple.intros(36)]]
             by fastforce
       next
         case False
@@ -2312,7 +2340,7 @@ proof -
         proof (cases "(const_list es)")
           case True
           thus ?thesis
-            using 2(3) outer_outer_false Label reduce.intros(1)[OF reduce_simple.intros(33)]
+            using 2(3) outer_outer_false Label reduce.intros(1)[OF reduce_simple.intros(35)]
                   progress_L0[OF _ is_const_list_vs_to_es_list[of "rev ves"], where ?es_c="[]"]
             by fastforce
         next
@@ -2346,7 +2374,7 @@ proof -
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev bvs"] local_eqs(3)
                 by fastforce
               hence "\<lparr>[Label ln les es]\<rparr> \<leadsto> \<lparr>(drop (length bvs - ln) (vs_to_es bvs))@les\<rparr>"
-                using reduce_simple.intros(35) local_eqs(3) is_const_list_vs_to_es_list
+                using reduce_simple.intros(37) local_eqs(3) is_const_list_vs_to_es_list
                 unfolding drop_map
                 by fastforce
               hence 1:"\<lparr>s;vs;[Label ln les es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length bvs - ln) (vs_to_es bvs))@les\<rparr>"
@@ -2408,7 +2436,7 @@ proof -
         case True
         thus ?thesis
           using 2(3) is_const_list_vs_to_es_list
-                Local progress_L0[OF reduce.intros(1)[OF reduce_simple.intros(41)]]
+                Local progress_L0[OF reduce.intros(1)[OF reduce_simple.intros(43)]]
             by fastforce
       next
         case False
@@ -2422,7 +2450,7 @@ proof -
             case True
             thus ?thesis
               using 2(3) Local outer_true outer_outer_false is_const_list_vs_to_es_list[of "rev ves"]
-                  reduce.intros(1)[OF reduce_simple.intros(40)[OF outer_true True]]
+                  reduce.intros(1)[OF reduce_simple.intros(42)[OF outer_true True]]
                   progress_L0[where ?es_c="[]"]
                   by fastforce
           next
@@ -2469,7 +2497,7 @@ proof -
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x3"] local_eqs(3)
                 by fastforce
               hence "\<lparr>[Local ln j vls es]\<rparr> \<leadsto> \<lparr>(drop (length x3 - ln) (vs_to_es x3))\<rparr>"
-                using reduce_simple.intros(42) local_eqs(3) is_const_list_vs_to_es_list
+                using reduce_simple.intros(44) local_eqs(3) is_const_list_vs_to_es_list
                 unfolding drop_map
                 by fastforce
               hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x3 - ln) (vs_to_es x3))\<rparr>"

@@ -80,6 +80,9 @@ datatype
   unop_i = Clz | Ctz | Popcnt
 
 datatype
+  extendsop = Extend8S | Extend16S
+
+datatype
   unop_f = Neg | Abs | Ceil | Floor | Trunc | Nearest | Sqrt
 
 datatype
@@ -134,6 +137,7 @@ datatype \<comment> \<open>basic instructions\<close>
     | EConst v ("C _" 60)
     | Unop_i t unop_i
     | Unop_f t unop_f
+    | ExtendS t extendsop
     | Binop_i t binop_i
     | Binop_f t binop_f
     | Testop t testop

@@ -185,6 +185,17 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                (s, vs, RSNormal (vs_to_es ((ConstFloat64 (app_unop_f fop c))#ves')))
            | _ \<Rightarrow> (s, vs, crash_error))
       | $(Unop_f _ fop) \<Rightarrow> (s, vs, crash_error)
+      | $(ExtendS T_i32 extendsop) \<Rightarrow>
+         (case ves of
+            (ConstInt32 c)#ves' \<Rightarrow>
+              (s, vs, RSNormal (vs_to_es ((ConstInt32 (app_extendsop extendsop c))#ves')))
+          | _ \<Rightarrow> (s, vs, crash_error))
+      | $(ExtendS T_i64 extendsop) \<Rightarrow>
+          (case ves of
+             (ConstInt64 c)#ves' \<Rightarrow>
+               (s, vs, RSNormal (vs_to_es ((ConstInt64 (app_extendsop extendsop c))#ves')))
+           | _ \<Rightarrow> (s, vs, crash_error))
+      | $(ExtendS _ extendsop) \<Rightarrow> (s, vs, crash_error)
       \<comment> \<open>\<open>BINOPS\<close>\<close>
       | $(Binop_i T_i32 iop) \<Rightarrow>
           (case ves of
