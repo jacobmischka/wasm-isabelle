@@ -125,7 +125,7 @@ proof -
     apply (metis (no_types, lifting) temp0 temp1 temp2 b_e.simps(978,979,982) check_single.simps(2) check_single.simps(3) check_single.simps(6) type_update.simps)
     done
   have "\<C> \<turnstile> [e] : ([t] _> [arity_1_result e])"
-    using assms(2) b_e_typing.intros(2,3,6,9,10)
+    using assms(2) b_e_typing.intros(2,3,6,9,10,11)
     unfolding arity_1_result_def
     by fastforce
   thus ?thesis
@@ -158,6 +158,10 @@ proof -
     using b_e_check_single_type_not_bot_sound[OF _ assms(4,5,3)]
     by fastforce
 qed
+
+
+print_statement b_e_type_checker_check_check_single.induct
+print_statement b_e_typing.intros
 
 lemma b_e_type_checker_sound:
   assumes "b_e_type_checker \<C> es (tn _> tm)"
@@ -322,7 +326,7 @@ proof -
   next
     case (15 \<C> ts)
     thus ?case
-      using b_e_typing.intros(12,36)
+      using b_e_typing.intros(13,36)
       by fastforce
   next
     case (16 \<C> ts)
@@ -333,7 +337,7 @@ proof -
         proof (cases x1 rule: List.rev_cases)
           case Nil
           have "\<C> \<turnstile> [Drop] : (tm@[T_i32] _> tm)"
-            using b_e_typing.intros(16,36)
+            using b_e_typing.intros(14,36)
             by fastforce
           thus ?thesis
             using c_types_agree_top1 Nil TopType
@@ -344,7 +348,7 @@ proof -
               using 16 TopType type_update_empty
               by (metis check_single.simps(14))
             hence temp2:"c_types_agree (TopType ys) tm"
-              using consume_top_geq[OF temp1] 15(2,3,4)
+              using consume_top_geq[OF temp1] 16(2,3,4)
               by (metis Suc_leI add_diff_cancel_right' append_eq_conv_conj consume.simps(2)
                         ct_suffix_def length_Cons length_append list.size(3) trans_le_add2
                         zero_less_Suc)
@@ -387,7 +391,7 @@ proof -
               using temp2 ct_suffix_extend_ct_list_eq snoc Type
               by (simp add: ct_list_eq_def to_ct_list_def)
             thus ?thesis
-              using b_e_typing.intros(15,36)
+              using b_e_typing.intros(14,36)
               by fastforce
       qed
     qed simp
@@ -564,7 +568,7 @@ proof -
         using cts_def2
         by simp
       thus ?thesis
-        using b_e_typing.intros(15,36) Type tm'_def 16(2)
+        using b_e_typing.intros(15,36) Type tm'_def 17(2)
         by fastforce
     qed simp
   next
@@ -624,8 +628,8 @@ proof -
     ultimately
     show ?case
       using b_e_check_single_top_not_bot_sound[OF _ 21(3,4)]
-            b_e_typing.intros(18)
-            b_e_typing.intros(35)
+            b_e_typing.intros(19)
+            b_e_typing.intros(36)
       by (metis suffix_def)
   next
     case (22 \<C> i ts)
