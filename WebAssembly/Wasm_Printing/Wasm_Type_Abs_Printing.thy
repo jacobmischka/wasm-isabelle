@@ -76,7 +76,7 @@ code_printing
 | constant wasm_int_i64_inst.int_popcnt_i64 \<rightharpoonup> (OCaml) "I64Wrapper.popcnt"
 | constant wasm_int_i64_inst.int_extend8_s_i64 \<rightharpoonup> (OCaml) "I64Wrapper.extend8'_s"
 | constant wasm_int_i64_inst.int_extend16_s_i64 \<rightharpoonup> (OCaml) "I64Wrapper.extend16'_s"
-| constant wasm_i64_i64_inst.int64_extend32_s_i64 \<rightharpoonup> (OCaml) "I64Wrapper.extend32'_s"
+| constant wasm_int64_i64_inst.int64_extend32_s_i64 \<rightharpoonup> (OCaml) "I64Wrapper.extend32'_s"
   (* BINOPS - wrap *)
 | constant wasm_int_i64_inst.int_add_i64 \<rightharpoonup> (OCaml) "I64Wrapper.add"
 | constant wasm_int_i64_inst.int_sub_i64 \<rightharpoonup> (OCaml) "I64Wrapper.sub"

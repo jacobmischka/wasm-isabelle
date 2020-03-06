@@ -48,7 +48,7 @@ begin
     "int_ne x y \<equiv> \<not> (int_eq x y)"
 end
 
-class wasm_i64 = wasm_int +
+class wasm_int64 = wasm_int +
   (* unops *)
   fixes int64_extend32_s :: "'a \<Rightarrow> 'a"
 

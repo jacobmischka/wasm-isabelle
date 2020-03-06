@@ -3,7 +3,7 @@ section \<open>WebAssembly Base Definitions\<close>
 theory Wasm_Base_Defs imports Wasm_Ast Wasm_Type_Abs begin
 
 instantiation i32 :: wasm_int begin instance .. end
-instantiation i64 :: wasm_i64 begin instance .. end
+instantiation i64 :: wasm_int64 begin instance .. end
 instantiation f32 :: wasm_float begin instance .. end
 instantiation f64 :: wasm_float begin instance .. end
 
@@ -156,7 +156,7 @@ definition app_extendsop_i32 :: "extendsop \<Rightarrow> 'i::wasm_int \<Rightarr
                                     Extend8S \<Rightarrow> int_extend8_s c
                                   | Extend16S \<Rightarrow> int_extend16_s c)"
 
-definition app_extendsop_i64 :: "extendsop \<Rightarrow> 'i::wasm_i64 \<Rightarrow> 'i::wasm_i64" where
+definition app_extendsop_i64 :: "extendsop \<Rightarrow> 'i::wasm_int64 \<Rightarrow> 'i::wasm_int64" where
   "app_extendsop_i64 extendsop c = (case extendsop of
                                     Extend8S \<Rightarrow> int_extend8_s c
                                   | Extend16S \<Rightarrow> int_extend16_s c
