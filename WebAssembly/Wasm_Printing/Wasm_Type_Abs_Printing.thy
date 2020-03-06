@@ -29,6 +29,8 @@ code_printing
   constant wasm_int_i32_inst.int_clz_i32 \<rightharpoonup> (OCaml) "I32Wrapper.clz"
 | constant wasm_int_i32_inst.int_ctz_i32 \<rightharpoonup> (OCaml) "I32Wrapper.ctz"
 | constant wasm_int_i32_inst.int_popcnt_i32 \<rightharpoonup> (OCaml) "I32Wrapper.popcnt"
+| constant wasm_int_i32_inst.int_extend8_s_i32 \<rightharpoonup> (OCaml) "I32Wrapper.extend8'_s"
+| constant wasm_int_i32_inst.int_extend16_s_i32 \<rightharpoonup> (OCaml) "I32Wrapper.extend16'_s"
   (* BINOPS - wrap *)
 | constant wasm_int_i32_inst.int_add_i32 \<rightharpoonup> (OCaml) "I32Wrapper.add"
 | constant wasm_int_i32_inst.int_sub_i32 \<rightharpoonup> (OCaml) "I32Wrapper.sub"
@@ -72,6 +74,9 @@ code_printing
 | constant wasm_int_i64_inst.int_clz_i64 \<rightharpoonup> (OCaml) "I64Wrapper.clz"
 | constant wasm_int_i64_inst.int_ctz_i64 \<rightharpoonup> (OCaml) "I64Wrapper.ctz"
 | constant wasm_int_i64_inst.int_popcnt_i64 \<rightharpoonup> (OCaml) "I64Wrapper.popcnt"
+| constant wasm_int_i64_inst.int_extend8_s_i64 \<rightharpoonup> (OCaml) "I64Wrapper.extend8'_s"
+| constant wasm_int_i64_inst.int_extend16_s_i64 \<rightharpoonup> (OCaml) "I64Wrapper.extend16'_s"
+| constant wasm_i64_i64_inst.i64_extend32_s_i64 \<rightharpoonup> (OCaml) "I64Wrapper.extend32'_s"
   (* BINOPS - wrap *)
 | constant wasm_int_i64_inst.int_add_i64 \<rightharpoonup> (OCaml) "I64Wrapper.add"
 | constant wasm_int_i64_inst.int_sub_i64 \<rightharpoonup> (OCaml) "I64Wrapper.sub"

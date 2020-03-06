@@ -11,7 +11,6 @@ class wasm_int = wasm_base +
   fixes int_popcnt :: "'a \<Rightarrow> 'a"
   fixes int_extend8_s :: "'a \<Rightarrow> 'a"
   fixes int_extend16_s :: "'a \<Rightarrow> 'a"
-  fixes i64_extend32_s :: "'a \<Rightarrow> 'a"
   (* binops *)
   fixes int_add :: "'a \<Rightarrow> 'a \<Rightarrow> 'a"
   fixes int_sub :: "'a \<Rightarrow> 'a \<Rightarrow> 'a"
@@ -48,6 +47,10 @@ begin
   int_ne where
     "int_ne x y \<equiv> \<not> (int_eq x y)"
 end
+
+class wasm_i64 = wasm_int +
+  (* unops *)
+  fixes i64_extend32_s :: "'a \<Rightarrow> 'a option"
 
 class wasm_float = wasm_base +
   (* unops *)

@@ -3,7 +3,7 @@ section \<open>WebAssembly Base Definitions\<close>
 theory Wasm_Base_Defs imports Wasm_Ast Wasm_Type_Abs begin
 
 instantiation i32 :: wasm_int begin instance .. end
-instantiation i64 :: wasm_int begin instance .. end
+instantiation i64 :: wasm_i64 begin instance .. end
 instantiation f32 :: wasm_float begin instance .. end
 instantiation f64 :: wasm_float begin instance .. end
 
