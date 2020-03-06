@@ -50,7 +50,7 @@ end
 
 class wasm_i64 = wasm_int +
   (* unops *)
-  fixes i64_extend32_s :: "'a \<Rightarrow> 'a option"
+  fixes int64_extend32_s :: "'a \<Rightarrow> 'a"
 
 class wasm_float = wasm_base +
   (* unops *)

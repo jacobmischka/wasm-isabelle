@@ -80,7 +80,7 @@ datatype
   unop_i = Clz | Ctz | Popcnt
 
 datatype
-  extendsop = Extend8S | Extend16S
+  extendsop = Extend8S | Extend16S | Extend32S
 
 datatype
   unop_f = Neg | Abs | Ceil | Floor | Trunc | Nearest | Sqrt

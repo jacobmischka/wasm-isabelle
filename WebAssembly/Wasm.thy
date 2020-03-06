@@ -121,8 +121,8 @@ inductive reduce_simple :: "[e list, e list] \<Rightarrow> bool" ("\<lparr>_\<rp
 | unop_f32:"\<lparr>[$C (ConstFloat32 c), $(Unop_f T_f32 fop)]\<rparr> \<leadsto> \<lparr>[$C (ConstFloat32 (app_unop_f fop c))]\<rparr>"
 | unop_f64:"\<lparr>[$C (ConstFloat64 c), $(Unop_f T_f64 fop)]\<rparr> \<leadsto> \<lparr>[$C (ConstFloat64 (app_unop_f fop c))]\<rparr>"
   \<comment> \<open>\<open>integer sign-extension ops\<close>\<close>
-| extendsop_i32:"\<lparr>[$C (ConstInt32 c), $(ExtendS T_i32 extendsop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt32 (app_extendsop iop c))]\<rparr>"
-| extendsop_i64:"\<lparr>[$C (ConstInt64 c), $(ExtendS T_i64 extendsop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt64 (app_extendsop iop c))]\<rparr>"
+| extendsop_i32:"\<lparr>[$C (ConstInt32 c), $(ExtendS T_i32 extendsop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt32 (app_extendsop_i32 extendsop c))]\<rparr>"
+| extendsop_i64:"\<lparr>[$C (ConstInt64 c), $(ExtendS T_i64 extendsop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt64 (app_extendsop_i64 extendsop c))]\<rparr>"
   \<comment> \<open>\<open>int32 binary ops\<close>\<close>
 | binop_i32_Some:"\<lbrakk>app_binop_i iop c1 c2 = (Some c)\<rbrakk> \<Longrightarrow> \<lparr>[$C (ConstInt32 c1), $C (ConstInt32 c2), $(Binop_i T_i32 iop)]\<rparr> \<leadsto> \<lparr>[$C (ConstInt32 c)]\<rparr>"
 | binop_i32_None:"\<lbrakk>app_binop_i iop c1 c2 = None\<rbrakk> \<Longrightarrow> \<lparr>[$C (ConstInt32 c1), $C (ConstInt32 c2), $(Binop_i T_i32 iop)]\<rparr> \<leadsto> \<lparr>[Trap]\<rparr>"

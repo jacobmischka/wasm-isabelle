@@ -151,10 +151,16 @@ definition app_unop_f :: "unop_f \<Rightarrow> 'f::wasm_float \<Rightarrow> 'f::
                   | Nearest \<Rightarrow> float_nearest c
                   | Sqrt \<Rightarrow> float_sqrt c)"
 
-definition app_extendsop :: "extendsop \<Rightarrow> 'i::wasm_int \<Rightarrow> 'i::wasm_int" where
-  "app_extendsop extendsop c = (case extendsop of
+definition app_extendsop_i32 :: "extendsop \<Rightarrow> 'i::wasm_int \<Rightarrow> 'i::wasm_int" where
+  "app_extendsop_i32 extendsop c = (case extendsop of
                                     Extend8S \<Rightarrow> int_extend8_s c
                                   | Extend16S \<Rightarrow> int_extend16_s c)"
+
+definition app_extendsop_i64 :: "extendsop \<Rightarrow> 'i::wasm_i64 \<Rightarrow> 'i::wasm_i64" where
+  "app_extendsop_i64 extendsop c = (case extendsop of
+                                    Extend8S \<Rightarrow> int_extend8_s c
+                                  | Extend16S \<Rightarrow> int_extend16_s c
+                                  | Extend32S \<Rightarrow> int64_extend32_s c)"
 
 definition app_binop_i :: "binop_i \<Rightarrow> 'i::wasm_int \<Rightarrow> 'i::wasm_int \<Rightarrow> ('i::wasm_int) option" where
   "app_binop_i iop c1 c2 = (case iop of
