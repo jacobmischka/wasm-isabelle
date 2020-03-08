@@ -122,7 +122,7 @@ proof -
     using assms arity_1_result_def
     unfolding to_ct_list_def
     apply (simp del: convert_cond.simps)
-    apply (metis (no_types, lifting) b_e.simps(1041) b_e.simps(1042) b_e.simps(1043) b_e.simps(1046) check_single.simps(2) check_single.simps(3) check_single.simps(4) check_single.simps(7) temp0 temp1 temp2 type_update.simps)
+    apply (metis (no_types, lifting) b_e.simps(1175) b_e.simps(1176) b_e.simps(1177) b_e.simps(1180) check_single.simps(2) check_single.simps(3) check_single.simps(4) check_single.simps(7) temp0 temp1 temp2 type_update.simps)
     done
   have "\<C> \<turnstile> [e] : ([t] _> [arity_1_result e])"
     using assms(2) b_e_typing.intros(2,3,4,7,10,11,12)
@@ -713,31 +713,37 @@ proof -
       by fastforce
   next
     case (28 \<C> i ts)
-    hence "type_update ts [] (Type [(local \<C>)!i]) = tm'"
+    obtain tn'' tm'' where func_def:"(func_t \<C>)!i = (tn'' _> tm'')"
+      using tf.exhaust
+      by blast
+    hence "type_update ts (to_ct_list tn'') (Type tm'') = tm'"
+      using 28
       by auto
     moreover
-    have "i < length (local \<C>)"
+    have "i < length (func_t \<C>)"
       using 28
       by (simp, meson)
-    hence "\<C> \<turnstile> [Get_local i] : ([] _> [(local \<C>)!i])"
-      using b_e_typing.intros(26)
+    hence "\<C> \<turnstile> [Call i] : (tn'' _> tm'')"
+      using b_e_typing.intros(24) func_def
       by fastforce
     ultimately
     show ?case
       using b_e_check_single_type_not_bot_sound[OF _ 28(3,4,2)]
-      unfolding to_ct_list_def
-      by (metis list.map_disc_iff)
+      by fastforce
   next
     case (29 \<C> i ts)
-    hence "type_update ts (to_ct_list [(local \<C>)!i]) (Type []) = tm'"
-      unfolding to_ct_list_def
+    obtain tn'' tm'' where type_def:"(types_t \<C>)!i = (tn'' _> tm'')"
+      using tf.exhaust
+      by blast
+    hence "type_update ts (to_ct_list (tn''@[T_i32])) (Type tm'') = tm'"
+      using 29
       by auto
     moreover
-    have "i < length (local \<C>)"
+    have "(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
       using 29
       by (simp, meson)
-    hence "\<C> \<turnstile> [Set_local i] : ([(local \<C>)!i] _> [])"
-      using b_e_typing.intros(27)
+    hence "\<C> \<turnstile> [Call_indirect i] : (tn''@[T_i32] _> tm'')"
+      using b_e_typing.intros(25) type_def
       by fastforce
     ultimately
     show ?case
@@ -745,44 +751,76 @@ proof -
       by fastforce
   next
     case (30 \<C> i ts)
+    hence "type_update ts [] (Type [(local \<C>)!i]) = tm'"
+      by auto
+    moreover
+    have "i < length (local \<C>)"
+      using 30
+      by (simp, meson)
+    hence "\<C> \<turnstile> [Get_local i] : ([] _> [(local \<C>)!i])"
+      using b_e_typing.intros(26)
+      by fastforce
+    ultimately
+    show ?case
+      using b_e_check_single_type_not_bot_sound[OF _ 30(3,4,2)]
+      unfolding to_ct_list_def
+      by (metis list.map_disc_iff)
+  next
+    case (31 \<C> i ts)
+    hence "type_update ts (to_ct_list [(local \<C>)!i]) (Type []) = tm'"
+      unfolding to_ct_list_def
+      by auto
+    moreover
+    have "i < length (local \<C>)"
+      using 31
+      by (simp, meson)
+    hence "\<C> \<turnstile> [Set_local i] : ([(local \<C>)!i] _> [])"
+      using b_e_typing.intros(27)
+      by fastforce
+    ultimately
+    show ?case
+      using b_e_check_single_type_not_bot_sound[OF _ 31(3,4,2)]
+      by fastforce
+  next
+    case (32 \<C> i ts)
     hence "type_update ts (to_ct_list [(local \<C>)!i]) (Type [(local \<C>)!i]) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
     have "i < length (local \<C>)"
-      using 30
+      using 32
       by (simp, meson)
     hence "\<C> \<turnstile> [Tee_local i] : ([(local \<C>)!i] _> [(local \<C>)!i])"
       using b_e_typing.intros(28)
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 30(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 32(3,4,2)]
       by fastforce
   next
-    case (31 \<C> i ts)
+    case (33 \<C> i ts)
     hence "type_update ts [] (Type [tg_t ((global \<C>)!i)]) = tm'"
       by auto
     moreover
     have "i < length (global \<C>)"
-      using 31
+      using 33
       by (simp, meson)
     hence "\<C> \<turnstile> [Get_global i] : ([] _> [tg_t ((global \<C>)!i)])"
       using b_e_typing.intros(29)
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 31(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 33(3,4,2)]
       unfolding to_ct_list_def
       by (metis list.map_disc_iff)
   next
-    case (32 \<C> i ts)
+    case (34 \<C> i ts)
     hence "type_update ts (to_ct_list [tg_t ((global \<C>)!i)]) (Type []) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
     have "i < length (global \<C>) \<and> is_mut (global \<C> ! i)"
-      using 32
+      using 34
       by (simp, meson)
     then obtain t where "(global \<C> ! i) = \<lparr>tg_mut = T_mut, tg_t = t\<rparr>" "i < length (global \<C>)"
       unfolding is_mut_def
@@ -793,71 +831,71 @@ proof -
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 32(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 34(3,4,2)]
       by fastforce
   next
-    case (33 \<C> t tp_sx a off ts)
+    case (35 \<C> t tp_sx a off ts)
     hence "type_update ts (to_ct_list [T_i32]) (Type [t]) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
     have "(memory \<C>) \<noteq> None \<and> load_store_t_bounds a (option_projl tp_sx) t"
-      using 33
+      using 35
       by (simp, meson)
     hence "\<C> \<turnstile> [Load t tp_sx a off] : ([T_i32] _> [t])"
       using b_e_typing.intros(31)
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 33(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 35(3,4,2)]
       by fastforce
   next
-    case (34 \<C> t tp a off ts)
+    case (36 \<C> t tp a off ts)
     hence "type_update ts (to_ct_list [T_i32,t]) (Type []) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
     have "(memory \<C>) \<noteq> None \<and> load_store_t_bounds a tp t"
-      using 34
+      using 36
       by (simp, meson)
     hence "\<C> \<turnstile> [Store t tp a off] : ([T_i32,t] _> [])"
       using b_e_typing.intros(32)
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 34(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 36(3,4,2)]
       by fastforce
   next
-    case (35 \<C> ts)
+    case (37 \<C> ts)
     hence "type_update ts [] (Type [T_i32]) = tm'"
       by auto
     moreover
     have "memory \<C> \<noteq> None"
-      using 35
+      using 37
       by (simp, meson)
     hence "\<C> \<turnstile> [Current_memory] : ([] _> [T_i32])"
       using b_e_typing.intros(33)
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 35(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 37(3,4,2)]
       unfolding to_ct_list_def
       by (metis list.map_disc_iff)
   next
-    case (36 \<C> ts)
+    case (38 \<C> ts)
     hence "type_update ts (to_ct_list [T_i32]) (Type [T_i32]) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
     have "memory \<C> \<noteq> None"
-      using 36
+      using 38
       by (simp, meson)
     hence "\<C> \<turnstile> [Grow_memory] : ([T_i32] _> [T_i32])"
       using b_e_typing.intros(34)
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 36(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 38(3,4,2)]
       by fastforce
   qed
   thus ?thesis
@@ -990,12 +1028,12 @@ proof -
       by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (28 \<C> i ts)
-    thus ?case
-      by (simp, meson assms(2) type_update.simps)
+    then show ?case
+      by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (29 \<C> i ts)
     thus ?case
-      by (simp, meson assms(2) type_update.simps)
+      by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (30 \<C> i ts)
     thus ?case
@@ -1009,19 +1047,27 @@ proof -
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (33 \<C> t tp_sx a off ts)
+    case (33 \<C> i ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (34 \<C> t tp a off ts)
+    case (34 \<C> i ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (35 \<C> ts)
+    case (35 \<C> t tp_sx a off ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (36 \<C> ts)
+    case (36 \<C> t tp a off ts)
+    thus ?case
+      by (simp, meson assms(2) type_update.simps)
+  next
+    case (37 \<C> ts)
+    thus ?case
+      by (simp, meson assms(2) type_update.simps)
+  next
+    case (38 \<C> ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   qed

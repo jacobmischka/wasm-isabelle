@@ -470,6 +470,33 @@ proof (cases ves)
   qed auto
 qed auto
 
+lemma run_one_step_basic_return_call_result:
+  assumes "run_one_step d i (s,vs,ves,$ReturnCall x12) = (s', vs', res)"
+  shows "\<exists>c r. res = RSReturnCall c r"
+  using assms
+  by (cases ves) auto
+
+lemma run_one_step_basic_return_call_indirect_result:
+  assumes "run_one_step d i (s,vs,ves,$ReturnCall_indirect x13) = (s', vs', res)"
+  shows "(\<exists>c r. res = RSReturnCall c r) \<or> (\<exists>e. res = RSCrash e)"
+  using assms
+proof (cases ves)
+  case (Cons a list)
+  thus ?thesis
+    using assms
+  proof (cases a)
+    case (ConstInt32 x1)
+    thus ?thesis
+      using Cons assms
+    proof (cases "stab s i (nat_of_int x1)")
+      case (Some cl)
+      thus ?thesis
+        using Cons assms ConstInt32
+        by (cases cl; cases "stypes s i x13 = cl_type cl") auto
+    qed auto
+  qed auto
+qed auto
+
 lemma run_one_step_basic_get_local_result:
   assumes "run_one_step d i (s,vs,ves,$Get_local x14) = (s', vs', res)"
   shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
@@ -846,7 +873,7 @@ qed
 
 lemma run_one_step_label_result:
   assumes "run_one_step d i (s,vs,ves,Label x41 x42 x43) = (s', vs', res)"
-  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>r rvs. res = RSBreak r rvs) \<or> (\<exists>rvs. res = RSReturn rvs) \<or> (\<exists>e. res = RSCrash e)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>rvs. res = RSReturn rvs) \<or> (\<exists>c rvs. res = RSReturnCall c rvs) \<or> (\<exists>e. res = RSCrash e)"
   using assms
   by (cases res) auto
 
@@ -953,6 +980,16 @@ proof (cases e)
     case (Call_indirect x13)
     thus ?thesis
       using run_one_step_basic_call_indirect_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall x12)
+    thus ?thesis
+      using run_one_step_basic_return_call_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall_indirect x13)
+    thus ?thesis
+      using run_one_step_basic_return_call_indirect_result assms Basic
       by fastforce
   next
     case (Get_local x14)
@@ -1141,6 +1178,16 @@ proof (cases e)
     case (Call_indirect x13)
     thus ?thesis
       using run_one_step_basic_call_indirect_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall x12)
+    thus ?thesis
+      using run_one_step_basic_return_call_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall_indirect x13)
+    thus ?thesis
+      using run_one_step_basic_return_call_indirect_result assms Basic
       by fastforce
   next
     case (Get_local x14)
@@ -1900,6 +1947,53 @@ proof -
         qed
       qed auto
     qed auto
+ next
+    case (ReturnCall x12)
+    thus ?thesis
+      using assms progress_L0_left[OF reduce.intros(2)]
+            is_const_list_vs_to_es_list[of "rev ves"]
+      by auto
+  next
+    case (ReturnCall_indirect x13)
+    thus ?thesis
+      using assms
+    proof (cases ves)
+      case (Cons a list)
+      thus ?thesis
+        using assms ReturnCall_indirect
+      proof (cases a)
+        case (ConstInt32 c)
+        thus ?thesis
+        proof (cases "stab s i (nat_of_int c)")
+          case None
+          thus ?thesis
+            using assms ReturnCall_indirect Cons ConstInt32
+                  progress_L0_left[OF reduce.intros(4)]
+                  is_const_list_vs_to_es_list[of "rev list"]
+            by auto
+        next
+          case (Some cl)
+          thus ?thesis
+          proof (cases "stypes s i x13 = cl_type cl")
+            case True
+            hence "\<lparr>s;vs;(vs_to_es list) @ [$C ConstInt32 c, $Call_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list) @ [Callcl cl]\<rparr>"
+              using progress_L0_left[OF reduce.intros(3)] True Some is_const_list_vs_to_es_list[of "rev list"]
+              by fastforce
+            thus ?thesis
+              using assms ReturnCall_indirect Cons ConstInt32 Some True
+              by auto
+          next
+            case False
+            hence "\<lparr>s;vs;(vs_to_es list)@[$C ConstInt32 c, $Call_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list)@[Trap]\<rparr>"
+              using progress_L0_left[OF reduce.intros(4)] False Some is_const_list_vs_to_es_list[of "rev list"]
+              by fastforce
+            thus ?thesis
+              using assms ReturnCall_indirect Cons ConstInt32 Some False
+              by auto
+          qed
+        qed
+      qed auto
+    qed auto
   next
     case (Get_local j)
     thus ?thesis
@@ -2399,6 +2493,11 @@ proof -
               using outer_outer_false False run_step_is Label 2(3)
                 by auto
           next
+            case (RSReturnCall x3 x4)
+            thus ?thesis
+              using outer_outer_false False run_step_is Label 2(3)
+                by auto
+          next
             case (RSNormal x4)
             hence "es' = (vs_to_es ves)@[Label ln les x4]" "s' = s''" "vs' = vs''"
               using outer_outer_false False run_step_is Label 2(3) run_step_is
@@ -2510,6 +2609,38 @@ proof -
                 using es'_def
                 unfolding drop_map rev_take[symmetric]
                 by auto
+            next
+              case (RSReturnCall x31 x32)
+              thus ?thesis
+              sorry
+            (* TODO
+              hence es'_def:"es' = (vs_to_es ((take ln x32)@ves)) \<and> s' = s'' \<and> vs = vs' \<and> ln \<le> length x32"
+                using outer_outer_false False run_step_is Local 2(3) Suc
+                by (cases "ln \<le> length x32") auto
+              then obtain n lfilled es_c where local_eqs:"s=s'" "vs=vs'" "ln \<le> length x32" "Lfilled_exact n lfilled ((vs_to_es x32) @ [$Return] @ es_c) es"
+                using run_step_is run_step_return_imp_lfilled RSReturnCall
+                by fastforce
+              then obtain lfilled' where lfilled_int:"Lfilled n lfilled' ((vs_to_es x32) @ [$Return]) es"
+                using lfilled_collapse2[OF Lfilled_exact_imp_Lfilled]
+                by fastforce
+              obtain lfilled'' where "Lfilled n lfilled'' ((drop (length x32 - ln) (vs_to_es x32)) @ [$Return]) es"
+                using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x32"] local_eqs(3)
+                by fastforce
+              hence "\<lparr>[Local ln j vls es]\<rparr> \<leadsto> \<lparr>(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
+                using reduce_simple.intros(44) local_eqs(3) is_const_list_vs_to_es_list
+                unfolding drop_map
+                by fastforce
+              hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
+                using reduce.intros(1) local_eqs(1,2)
+                by fastforce
+              have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
+                using progress_L0[OF 1 is_const_list_vs_to_es_list[of "rev ves"], of "[]"] Local
+                by fastforce
+              thus ?thesis
+                using es'_def
+                unfolding drop_map rev_take[symmetric]
+                by auto
+            *)
             next
               case (RSNormal x4)
               hence inner_reduce:"\<lparr>s;vls;es\<rparr> \<leadsto>_j \<lparr>s'';vls';x4\<rparr>"

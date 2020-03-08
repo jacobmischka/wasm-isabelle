@@ -16,6 +16,7 @@ datatype res_step =
 | RSBreak nat "v list"
 | RSReturn "v list"
 | RSNormal "e list"
+| RSReturnCall e "v list"
 
 abbreviation crash_error where "crash_error \<equiv> RSCrash CError"
 
@@ -369,6 +370,22 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
       \<comment> \<open>\<open>RETURN\<close>\<close>
       | $Return \<Rightarrow>
           (s, vs, RSReturn ves)
+      \<comment> \<open>\<open>RETURN_CALL\<close>\<close>
+      | $ReturnCall j \<Rightarrow>
+          (s, vs, RSReturnCall (Callcl (sfunc s i j)) ves)
+      \<comment> \<open>\<open>RETURN_CALL_INDIRECT\<close>\<close>
+      | $ReturnCall_indirect j \<Rightarrow>
+          (case ves of
+             (ConstInt32 c)#ves' \<Rightarrow>
+               (case (stab s i (nat_of_int c)) of
+                  Some cl \<Rightarrow>
+                    if (stypes s i j = cl_type cl)
+                      then
+                        (s, vs, RSReturnCall (Callcl cl) ves')
+                      else
+                        (s, vs, crash_error)
+                | _ \<Rightarrow> (s, vs, crash_error))
+           | _ \<Rightarrow> (s, vs, crash_error))
       \<comment> \<open>\<open>GET_LOCAL\<close>\<close>
       | $Get_local j \<Rightarrow>
           (if j < length vs
@@ -517,6 +534,8 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                          (s', vs', RSBreak n bvs)
                      | RSReturn rvs \<Rightarrow>
                          (s', vs', RSReturn rvs)
+                     | RSReturnCall c rvs \<Rightarrow>
+                         (s', vs', RSReturnCall c rvs)
                      | RSNormal es' \<Rightarrow>
                          (s', vs', RSNormal ((vs_to_es ves)@[Label ln les es']))
                      | _ \<Rightarrow> (s', vs', crash_error)))

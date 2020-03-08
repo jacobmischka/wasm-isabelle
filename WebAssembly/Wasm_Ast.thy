@@ -125,6 +125,8 @@ datatype \<comment> \<open>basic instructions\<close>
     | Return
     | Call i
     | Call_indirect i
+    | ReturnCall i
+    | ReturnCall_indirect i
     | Get_local i
     | Set_local i
     | Tee_local i
