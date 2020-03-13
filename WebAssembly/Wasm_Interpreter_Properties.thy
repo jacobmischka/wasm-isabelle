@@ -873,7 +873,7 @@ qed
 
 lemma run_one_step_label_result:
   assumes "run_one_step d i (s,vs,ves,Label x41 x42 x43) = (s', vs', res)"
-  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>rvs. res = RSReturn rvs) \<or> (\<exists>c rvs. res = RSReturnCall c rvs) \<or> (\<exists>e. res = RSCrash e)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>r rvs. res = RSBreak r rvs) \<or> (\<exists>rvs. res = RSReturn rvs) \<or> (\<exists>c rvs. res = RSReturnCall c rvs) \<or> (\<exists>e. res = RSCrash e)"
   using assms
   by (cases res) auto
 
@@ -905,6 +905,12 @@ proof (cases "x54 = [Trap]")
         thus ?thesis
           using assms outer_False False rs_def Suc
           by (cases "x51 \<le> length x3") auto
+        next
+        case (RSReturnCall x41 x42)
+        thus ?thesis
+          using assms outer_False False rs_def Suc
+          by (cases "x51 \<le> length x42") auto
+          (* FIXME: Add the call instruction x41 *)
       qed auto
     qed auto
   qed

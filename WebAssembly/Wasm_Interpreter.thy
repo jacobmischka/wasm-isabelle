@@ -15,8 +15,8 @@ datatype res_step =
   RSCrash res_crash
 | RSBreak nat "v list"
 | RSReturn "v list"
-| RSNormal "e list"
 | RSReturnCall e "v list"
+| RSNormal "e list"
 
 abbreviation crash_error where "crash_error \<equiv> RSCrash CError"
 
@@ -559,6 +559,10 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                            RSReturn rvs \<Rightarrow>
                              if (length rvs \<ge> ln)
                                then (s', vs, RSNormal (vs_to_es ((take ln rvs)@ves)))
+                               else (s', vs, crash_error)
+                         | RSReturnCall c rvs \<Rightarrow>
+                             if (length rvs \<ge> ln)
+                               then (s', vs, RSNormal ((vs_to_es ((take ln rvs)@ves))@[c]))
                                else (s', vs, crash_error)
                          | RSNormal es' \<Rightarrow>
                              (s', vs, RSNormal ((vs_to_es ves)@[Local ln j vls' es']))

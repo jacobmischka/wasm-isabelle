@@ -40,6 +40,10 @@ inductive b_e_typing :: "[t_context, b_e list, tf] \<Rightarrow> bool" ("_ \<tur
 | call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = tf\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Call i] : tf"
   \<comment> \<open>\<open>call_indirect\<close>\<close>
 | call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Call_indirect i] : (t1s @ [T_i32] _> t2s)"
+  \<comment> \<open>\<open>return_call\<close>\<close>
+| return_call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = tf\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall i] : tf"
+  \<comment> \<open>\<open>return_call_indirect\<close>\<close>
+| return_call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall_indirect i] : (t1s @ [T_i32] _> t2s)"
   \<comment> \<open>\<open>get_local\<close>\<close>
 | get_local:"\<lbrakk>i < length(local \<C>); (local \<C>)!i = t\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Get_local i] : ([] _> [t])"
   \<comment> \<open>\<open>set_local\<close>\<close>

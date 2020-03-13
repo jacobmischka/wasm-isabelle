@@ -9,7 +9,7 @@ lemma b_e_check_single_type_sound:
           "c_types_agree (Type x2) tm"
           "\<C> \<turnstile> [e] : (t_in _> t_out)"
   shows "\<exists>tn. c_types_agree (Type x1) tn \<and> \<C> \<turnstile> [e] : (tn _> tm)"
-  using assms(2) b_e_typing.intros(37)[OF assms(3)] type_update_type[OF assms(1)]
+  using assms(2) b_e_typing.intros(39)[OF assms(3)] type_update_type[OF assms(1)]
   by auto
 
 lemma b_e_check_single_top_sound:
@@ -24,7 +24,7 @@ proof -
     using type_update_top_top[OF assms(1,2)]
     by fastforce
   hence "\<C> \<turnstile> [e] : (t_ag@t_in _> t_ag@t_out)"
-    using b_e_typing.intros(37)[OF assms(3)]
+    using b_e_typing.intros(39)[OF assms(3)]
     by fastforce
   thus ?thesis
     using t_ag_def
@@ -329,7 +329,7 @@ proof -
   next
     case (16 \<C> ts)
     thus ?case
-      using b_e_typing.intros(14,37)
+      using b_e_typing.intros(14,39)
       by fastforce
   next
     case (17 \<C> ts)
@@ -340,7 +340,7 @@ proof -
         proof (cases x1 rule: List.rev_cases)
           case Nil
           have "\<C> \<turnstile> [Drop] : (tm@[T_i32] _> tm)"
-            using b_e_typing.intros(15,37)
+            using b_e_typing.intros(15,39)
             by fastforce
           thus ?thesis
             using c_types_agree_top1 Nil TopType
@@ -363,7 +363,7 @@ proof -
               using temp2 ct_suffix_extend_ct_list_eq snoc TopType
               by (simp add: to_ct_list_def)
             thus ?thesis
-              using b_e_typing.intros(15,37)
+              using b_e_typing.intros(15,39)
               by fastforce
         qed
     next
@@ -394,7 +394,7 @@ proof -
               using temp2 ct_suffix_extend_ct_list_eq snoc Type
               by (simp add: ct_list_eq_def to_ct_list_def)
             thus ?thesis
-              using b_e_typing.intros(15,37)
+              using b_e_typing.intros(15,39)
               by fastforce
       qed
     qed simp
@@ -423,7 +423,7 @@ proof -
           using b_e_typing.intros(16)
           by blast
         thus ?thesis
-          using TopType 18 1 tm_def b_e_typing.intros(37) c_types_agree.simps(2) c_types_agree_top1
+          using TopType 18 1 tm_def b_e_typing.intros(39) c_types_agree.simps(2) c_types_agree_top1
           by fastforce
       next
         case 2
@@ -442,7 +442,7 @@ proof -
           using x1_def(1)
           by (metis c_types_agree_top2 list.simps(8,9) to_ct_list_def)
         thus ?thesis
-          using TopType b_e_typing.intros(16,37) tm_def
+          using TopType b_e_typing.intros(16,39) tm_def
           by auto
       next
         case 3
@@ -469,7 +469,7 @@ proof -
           using c_types_agree_top2
           by blast
         thus ?thesis
-          using TopType b_e_typing.intros(16,37) tm_def
+          using TopType b_e_typing.intros(16,39) tm_def
           by auto
       next
         case 4
@@ -522,7 +522,7 @@ proof -
           unfolding to_ct_list_def ct_list_eq_def
           by fastforce
         thus ?thesis
-          using b_e_typing.intros(16,37) tm_def
+          using b_e_typing.intros(16,39) tm_def
           by auto
       qed
     next
@@ -571,7 +571,7 @@ proof -
         using cts_def2
         by simp
       thus ?thesis
-        using b_e_typing.intros(16,37) Type tm'_def 18(2)
+        using b_e_typing.intros(16,39) Type tm'_def 18(2)
         by fastforce
     qed simp
   next
@@ -723,8 +723,8 @@ proof -
     have "i < length (func_t \<C>)"
       using 28
       by (simp, meson)
-    hence "\<C> \<turnstile> [Call i] : (tn'' _> tm'')"
-      using b_e_typing.intros(24) func_def
+    hence "\<C> \<turnstile> [ReturnCall i] : (tn'' _> tm'')"
+      using b_e_typing.intros(26) func_def
       by fastforce
     ultimately
     show ?case
@@ -742,8 +742,8 @@ proof -
     have "(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
       using 29
       by (simp, meson)
-    hence "\<C> \<turnstile> [Call_indirect i] : (tn''@[T_i32] _> tm'')"
-      using b_e_typing.intros(25) type_def
+    hence "\<C> \<turnstile> [ReturnCall_indirect i] : (tn''@[T_i32] _> tm'')"
+      using b_e_typing.intros(27) type_def
       by fastforce
     ultimately
     show ?case
@@ -758,7 +758,7 @@ proof -
       using 30
       by (simp, meson)
     hence "\<C> \<turnstile> [Get_local i] : ([] _> [(local \<C>)!i])"
-      using b_e_typing.intros(26)
+      using b_e_typing.intros(28)
       by fastforce
     ultimately
     show ?case
@@ -775,7 +775,7 @@ proof -
       using 31
       by (simp, meson)
     hence "\<C> \<turnstile> [Set_local i] : ([(local \<C>)!i] _> [])"
-      using b_e_typing.intros(27)
+      using b_e_typing.intros(29)
       by fastforce
     ultimately
     show ?case
@@ -791,7 +791,7 @@ proof -
       using 32
       by (simp, meson)
     hence "\<C> \<turnstile> [Tee_local i] : ([(local \<C>)!i] _> [(local \<C>)!i])"
-      using b_e_typing.intros(28)
+      using b_e_typing.intros(30)
       by fastforce
     ultimately
     show ?case
@@ -806,7 +806,7 @@ proof -
       using 33
       by (simp, meson)
     hence "\<C> \<turnstile> [Get_global i] : ([] _> [tg_t ((global \<C>)!i)])"
-      using b_e_typing.intros(29)
+      using b_e_typing.intros(31)
       by fastforce
     ultimately
     show ?case
@@ -826,7 +826,7 @@ proof -
       unfolding is_mut_def
       by (cases "global \<C> ! i", auto)
     hence "\<C> \<turnstile> [Set_global i] : ([tg_t (global \<C> ! i)] _> [])"
-      using b_e_typing.intros(30)[of i \<C> "tg_t (global \<C> ! i)"]
+      using b_e_typing.intros(32)[of i \<C> "tg_t (global \<C> ! i)"]
       unfolding is_mut_def tg_t_def
       by fastforce
     ultimately
@@ -843,7 +843,7 @@ proof -
       using 35
       by (simp, meson)
     hence "\<C> \<turnstile> [Load t tp_sx a off] : ([T_i32] _> [t])"
-      using b_e_typing.intros(31)
+      using b_e_typing.intros(33)
       by fastforce
     ultimately
     show ?case
@@ -859,7 +859,7 @@ proof -
       using 36
       by (simp, meson)
     hence "\<C> \<turnstile> [Store t tp a off] : ([T_i32,t] _> [])"
-      using b_e_typing.intros(32)
+      using b_e_typing.intros(34)
       by fastforce
     ultimately
     show ?case
@@ -874,7 +874,7 @@ proof -
       using 37
       by (simp, meson)
     hence "\<C> \<turnstile> [Current_memory] : ([] _> [T_i32])"
-      using b_e_typing.intros(33)
+      using b_e_typing.intros(35)
       by fastforce
     ultimately
     show ?case
@@ -891,7 +891,7 @@ proof -
       using 38
       by (simp, meson)
     hence "\<C> \<turnstile> [Grow_memory] : ([T_i32] _> [T_i32])"
-      using b_e_typing.intros(34)
+      using b_e_typing.intros(36)
       by fastforce
     ultimately
     show ?case
