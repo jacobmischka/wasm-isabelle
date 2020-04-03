@@ -381,7 +381,7 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                   Some cl \<Rightarrow>
                     if (stypes s i j = cl_type cl)
                       then
-                        (s, vs, RSReturnCall (Callcl cl) ves')
+                        (s, vs, (RSNormal ((vs_to_es ves') @ [$ReturnCall (nat_of_int c)])))
                       else
                         (s, vs, crash_error)
                 | _ \<Rightarrow> (s, vs, crash_error))

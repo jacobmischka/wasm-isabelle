@@ -477,7 +477,7 @@ lemma inj_basic: "inj Basic"
   by (meson e.inject(1) injI)
 
 lemma inj_basic_econst: "inj (\<lambda>v. $C v)"
-  by (meson b_e.inject(16) e.inject(1) injI)
+  by (meson b_e.inject(18) e.inject(1) injI)
 
 lemma to_e_list_1:"[$ a] = $* [a]"
   by simp

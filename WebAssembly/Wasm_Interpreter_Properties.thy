@@ -478,7 +478,7 @@ lemma run_one_step_basic_return_call_result:
 
 lemma run_one_step_basic_return_call_indirect_result:
   assumes "run_one_step d i (s,vs,ves,$ReturnCall_indirect x13) = (s', vs', res)"
-  shows "(\<exists>c r. res = RSReturnCall c r) \<or> (\<exists>e. res = RSCrash e)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
   using assms
 proof (cases ves)
   case (Cons a list)
@@ -1114,203 +1114,6 @@ next
     by fastforce
 qed
 
-lemma run_one_step_return_call:
-  assumes "run_one_step d i (s,vs,ves,e) = (s', vs', RSReturnCall c res)"
-  shows "(\<exists>j. e = $ReturnCall j) \<or> (\<exists>n les es. e = Label n les es)"
-proof (cases e)
-  case (Basic x1)
-  thus ?thesis
-  proof (cases x1)
-    case Unreachable
-    thus ?thesis
-      using run_one_step_basic_unreachable_result assms Basic
-      by fastforce
-  next
-    case Nop
-    thus ?thesis
-      using assms Basic
-      by fastforce
-  next
-    case Drop
-    thus ?thesis
-      using run_one_step_basic_drop_result assms Basic
-      by fastforce
-  next
-    case Select
-    thus ?thesis
-      using run_one_step_basic_select_result assms Basic
-      by fastforce
-  next
-    case (Block x51 x52)
-    thus ?thesis
-      using run_one_step_basic_block_result assms Basic
-      by fastforce
-  next
-    case (Loop x61 x62)
-    thus ?thesis
-      using run_one_step_basic_loop_result assms Basic
-      by fastforce
-  next
-    case (If x71 x72 x73)
-    thus ?thesis
-      using run_one_step_basic_if_result assms Basic
-      by fastforce
-  next
-    case (Br x8)
-    thus ?thesis
-      using run_one_step_basic_br_result assms Basic
-      by fastforce
-  next
-    case (Br_if x9)
-    thus ?thesis
-      using run_one_step_basic_br_if_result assms Basic
-      by fastforce
-  next
-    case (Br_table x10)
-    thus ?thesis
-      using run_one_step_basic_br_table_result assms Basic
-      by fastforce
-  next
-    case Return
-    thus ?thesis
-      using run_one_step_basic_return_result assms Basic
-      by fastforce
-  next
-    case (Call x12)
-    thus ?thesis
-      using run_one_step_basic_call_result assms Basic
-      by fastforce
-  next
-    case (Call_indirect x13)
-    thus ?thesis
-      using run_one_step_basic_call_indirect_result assms Basic
-      by fastforce
-  next
-    case (ReturnCall x12)
-    thus ?thesis
-      using run_one_step_basic_return_call_result assms Basic
-      by fastforce
-  next
-    case (ReturnCall_indirect x13)
-    thus ?thesis
-      using run_one_step_basic_return_call_indirect_result assms Basic
-      by fastforce
-  next
-    case (Get_local x14)
-    thus ?thesis
-      using run_one_step_basic_get_local_result assms Basic
-      by fastforce
-  next
-    case (Set_local x15)
-    thus ?thesis
-      using run_one_step_basic_set_local_result assms Basic
-      by fastforce
-  next
-    case (Tee_local x16)
-    thus ?thesis
-      using run_one_step_basic_tee_local_result assms Basic
-      by fastforce
-  next
-    case (Get_global x17)
-    thus ?thesis
-      using assms Basic
-      by fastforce
-  next
-    case (Set_global x18)
-    thus ?thesis
-      using run_one_step_basic_set_global_result assms Basic
-      by fastforce
-  next
-    case (Load x191 x192 x193 x194)
-    thus ?thesis
-      using run_one_step_basic_load_result assms Basic
-      by fastforce
-  next
-    case (Store x201 x202 x203 x204)
-    thus ?thesis
-      using run_one_step_basic_store_result assms Basic
-      by fastforce
-  next
-    case Current_memory
-    thus ?thesis
-      using run_one_step_basic_current_memory_result assms Basic
-      by fastforce
-  next
-    case Grow_memory
-    thus ?thesis
-      using run_one_step_basic_grow_memory_result assms Basic
-      by fastforce
-  next
-    case (EConst x23)
-    thus ?thesis
-      using assms Basic
-      by fastforce
-  next
-    case (Unop_i x241 x242)
-    thus ?thesis
-      using run_one_step_basic_unop_i_result assms Basic
-      by fastforce
-  next
-    case (Unop_f x251 x252)
-    thus ?thesis
-      using run_one_step_basic_unop_f_result assms Basic
-      by fastforce
-  next
-    case (ExtendS x241 x242)
-    thus ?thesis
-      using run_one_step_basic_extend_s_result assms Basic
-      by fastforce
-  next
-    case (Binop_i x261 x262)
-    thus ?thesis
-      using run_one_step_basic_binop_i_result assms Basic
-      by fastforce
-  next
-    case (Binop_f x271 x272)
-    thus ?thesis
-      using run_one_step_basic_binop_f_result assms Basic
-      by fastforce
-  next
-    case (Testop x281 x282)
-    thus ?thesis
-      using run_one_step_basic_testop_result assms Basic
-      by fastforce
-  next
-    case (Relop_i x291 x292)
-    thus ?thesis
-      using run_one_step_basic_relop_i_result assms Basic
-      by fastforce
-  next
-    case (Relop_f x301 x302)
-    thus ?thesis
-      using run_one_step_basic_relop_f_result assms Basic
-      by fastforce
-  next
-    case (Cvtop x311 x312 x313 x314)
-    thus ?thesis
-      using run_one_step_basic_cvtop_result assms Basic
-      by fastforce
-  qed
-next
-  case Trap
-  thus ?thesis
-    using assms
-    by auto
-next
-  case (Callcl x3)
-  thus ?thesis
-    using assms run_one_step_callcl_result
-    by fastforce
-next
-  case (Label x41 x42 x43)
-  thus ?thesis
-    by auto
-next
-  case (Local x51 x52 x53 x54)
-  thus ?thesis
-    using assms run_one_step_local_result
-    by fastforce
-qed
 lemma run_one_step_return:
   assumes "run_one_step d i (s,vs,ves,e) = (s', vs', RSReturn res)"
   shows "(e = $Return) \<or> (\<exists>n les es. e = Label n les es)"
@@ -1557,6 +1360,204 @@ proof -
   }
   thus "\<not>const_list es"
     by blast
+qed
+
+lemma run_one_step_return_call:
+  assumes "run_one_step d i (s,vs,ves,e) = (s', vs', RSReturnCall c res)"
+  shows "(\<exists>j. e = $ReturnCall j) \<or> (\<exists>n les es. e = Label n les es)"
+proof (cases e)
+  case (Basic x1)
+  thus ?thesis
+  proof (cases x1)
+    case Unreachable
+    thus ?thesis
+      using run_one_step_basic_unreachable_result assms Basic
+      by fastforce
+  next
+    case Nop
+    thus ?thesis
+      using assms Basic
+      by fastforce
+  next
+    case Drop
+    thus ?thesis
+      using run_one_step_basic_drop_result assms Basic
+      by fastforce
+  next
+    case Select
+    thus ?thesis
+      using run_one_step_basic_select_result assms Basic
+      by fastforce
+  next
+    case (Block x51 x52)
+    thus ?thesis
+      using run_one_step_basic_block_result assms Basic
+      by fastforce
+  next
+    case (Loop x61 x62)
+    thus ?thesis
+      using run_one_step_basic_loop_result assms Basic
+      by fastforce
+  next
+    case (If x71 x72 x73)
+    thus ?thesis
+      using run_one_step_basic_if_result assms Basic
+      by fastforce
+  next
+    case (Br x8)
+    thus ?thesis
+      using run_one_step_basic_br_result assms Basic
+      by fastforce
+  next
+    case (Br_if x9)
+    thus ?thesis
+      using run_one_step_basic_br_if_result assms Basic
+      by fastforce
+  next
+    case (Br_table x10)
+    thus ?thesis
+      using run_one_step_basic_br_table_result assms Basic
+      by fastforce
+  next
+    case Return
+    thus ?thesis
+      using run_one_step_basic_return_result assms Basic
+      by fastforce
+  next
+    case (Call x12)
+    thus ?thesis
+      using run_one_step_basic_call_result assms Basic
+      by fastforce
+  next
+    case (Call_indirect x13)
+    thus ?thesis
+      using run_one_step_basic_call_indirect_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall x12)
+    thus ?thesis
+      using run_one_step_basic_return_call_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall_indirect x13)
+    thus ?thesis
+      using run_one_step_basic_return_call_indirect_result assms Basic
+      by fastforce
+  next
+    case (Get_local x14)
+    thus ?thesis
+      using run_one_step_basic_get_local_result assms Basic
+      by fastforce
+  next
+    case (Set_local x15)
+    thus ?thesis
+      using run_one_step_basic_set_local_result assms Basic
+      by fastforce
+  next
+    case (Tee_local x16)
+    thus ?thesis
+      using run_one_step_basic_tee_local_result assms Basic
+      by fastforce
+  next
+    case (Get_global x17)
+    thus ?thesis
+      using assms Basic
+      by fastforce
+  next
+    case (Set_global x18)
+    thus ?thesis
+      using run_one_step_basic_set_global_result assms Basic
+      by fastforce
+  next
+    case (Load x191 x192 x193 x194)
+    thus ?thesis
+      using run_one_step_basic_load_result assms Basic
+      by fastforce
+  next
+    case (Store x201 x202 x203 x204)
+    thus ?thesis
+      using run_one_step_basic_store_result assms Basic
+      by fastforce
+  next
+    case Current_memory
+    thus ?thesis
+      using run_one_step_basic_current_memory_result assms Basic
+      by fastforce
+  next
+    case Grow_memory
+    thus ?thesis
+      using run_one_step_basic_grow_memory_result assms Basic
+      by fastforce
+  next
+    case (EConst x23)
+    thus ?thesis
+      using assms Basic
+      by fastforce
+  next
+    case (Unop_i x241 x242)
+    thus ?thesis
+      using run_one_step_basic_unop_i_result assms Basic
+      by fastforce
+  next
+    case (Unop_f x251 x252)
+    thus ?thesis
+      using run_one_step_basic_unop_f_result assms Basic
+      by fastforce
+  next
+    case (ExtendS x241 x242)
+    thus ?thesis
+      using run_one_step_basic_extend_s_result assms Basic
+      by fastforce
+  next
+    case (Binop_i x261 x262)
+    thus ?thesis
+      using run_one_step_basic_binop_i_result assms Basic
+      by fastforce
+  next
+    case (Binop_f x271 x272)
+    thus ?thesis
+      using run_one_step_basic_binop_f_result assms Basic
+      by fastforce
+  next
+    case (Testop x281 x282)
+    thus ?thesis
+      using run_one_step_basic_testop_result assms Basic
+      by fastforce
+  next
+    case (Relop_i x291 x292)
+    thus ?thesis
+      using run_one_step_basic_relop_i_result assms Basic
+      by fastforce
+  next
+    case (Relop_f x301 x302)
+    thus ?thesis
+      using run_one_step_basic_relop_f_result assms Basic
+      by fastforce
+  next
+    case (Cvtop x311 x312 x313 x314)
+    thus ?thesis
+      using run_one_step_basic_cvtop_result assms Basic
+      by fastforce
+  qed
+next
+  case Trap
+  thus ?thesis
+    using assms
+    by auto
+next
+  case (Callcl x3)
+  thus ?thesis
+    using assms run_one_step_callcl_result
+    by fastforce
+next
+  case (Label x41 x42 x43)
+  thus ?thesis
+    by auto
+next
+  case (Local x51 x52 x53 x54)
+  thus ?thesis
+    using assms run_one_step_local_result
+    by fastforce
 qed
 
 lemma run_step_return_call_imp_not_trap_const_list:
@@ -1840,7 +1841,7 @@ qed
 
 lemma run_step_return_call_imp_lfilled:
   assumes "run_step d i (s,vs,es) = (s', vs', RSReturnCall c res)"
-  shows "s = s' \<and> vs = vs' \<and> (\<exists>n lfilled es_c. Lfilled_exact n lfilled ((vs_to_es res) @ [$Return] @ es_c) es)"
+  shows "s = s' \<and> vs = vs' \<and> (\<exists>n lfilled j es_c. Lfilled_exact n lfilled ((vs_to_es res) @ [$ReturnCall j] @ es_c) es)"
 proof -
   fix ves e
   have "(run_step d i (s,vs,es) = (s', vs', RSReturnCall c res)) \<Longrightarrow>
@@ -1890,7 +1891,7 @@ proof -
           by fastforce
     qed
   next
-    case (2 d i s vs ves e s' vs')
+    case (2 d i s vs ves e s' vs' c)
     consider (a) "(\<exists>j. e = $ReturnCall j)" | (b) "(\<exists>n les es. e = Label n les es)"
       using run_one_step_return_call[OF 2(3)]
       by blast
@@ -2278,7 +2279,7 @@ proof -
  next
     case (ReturnCall x12)
     thus ?thesis
-      using assms progress_L0_left[OF reduce.intros(2)]
+      using assms progress_L0_left[OF reduce.intros(5)]
             is_const_list_vs_to_es_list[of "rev ves"]
       by auto
   next
@@ -2296,7 +2297,7 @@ proof -
           case None
           thus ?thesis
             using assms ReturnCall_indirect Cons ConstInt32
-                  progress_L0_left[OF reduce.intros(4)]
+                  progress_L0_left[OF reduce.intros(7)]
                   is_const_list_vs_to_es_list[of "rev list"]
             by auto
         next
@@ -2304,16 +2305,16 @@ proof -
           thus ?thesis
           proof (cases "stypes s i x13 = cl_type cl")
             case True
-            hence "\<lparr>s;vs;(vs_to_es list) @ [$C ConstInt32 c, $Call_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list) @ [Callcl cl]\<rparr>"
-              using progress_L0_left[OF reduce.intros(3)] True Some is_const_list_vs_to_es_list[of "rev list"]
+            hence "\<lparr>s;vs;(vs_to_es list) @ [$C ConstInt32 c, $ReturnCall_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list) @ [Callcl cl]\<rparr>"
+              using progress_L0_left[OF reduce.intros(6)] True Some is_const_list_vs_to_es_list[of "rev list"]
               by fastforce
             thus ?thesis
               using assms ReturnCall_indirect Cons ConstInt32 Some True
               by auto
           next
             case False
-            hence "\<lparr>s;vs;(vs_to_es list)@[$C ConstInt32 c, $Call_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list)@[Trap]\<rparr>"
-              using progress_L0_left[OF reduce.intros(4)] False Some is_const_list_vs_to_es_list[of "rev list"]
+            hence "\<lparr>s;vs;(vs_to_es list)@[$C ConstInt32 c, $ReturnCall_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list)@[Trap]\<rparr>"
+              using progress_L0_left[OF reduce.intros(7)] False Some is_const_list_vs_to_es_list[of "rev list"]
               by fastforce
             thus ?thesis
               using assms ReturnCall_indirect Cons ConstInt32 Some False
@@ -2851,7 +2852,7 @@ proof -
             ultimately
             show ?thesis
               using Label 2(3) outer_outer_false False run_step_is
-                    reduce.intros(23)[OF inner_reduce]
+                    reduce.intros(26)[OF inner_reduce]
               by fastforce
           qed
         qed

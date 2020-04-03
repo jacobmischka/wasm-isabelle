@@ -773,6 +773,68 @@ lemma types_preserved_call_indirect_None:
   using e_typing_s_typing.intros(4)
   by blast
 
+lemma types_preserved_return_call_indirect_Some:
+  assumes "\<S>\<bullet>\<C> \<turnstile> [$C ConstInt32 c, $ReturnCall_indirect j] : (ts _> ts')"
+          "stab s i' (nat_of_int c) = Some cl"
+          "stypes s i' j = tf"
+          "cl_type cl = tf"
+          "store_typing s \<S>"
+          "i' < length (inst s)"
+          "\<C> = (s_inst \<S> ! i') \<lparr>local := local (s_inst \<S> ! i') @ tvs, label := arb_labs, return := arb_return\<rparr>"
+  shows "\<S>\<bullet>\<C> \<turnstile> [Callcl cl] : (ts _> ts')"
+proof -
+  obtain t1s t2s where tf_def:"tf = (t1s _> t2s)"
+    using tf.exhaust by blast
+  obtain ts'' where ts''_def:"\<C> \<turnstile> [C ConstInt32 c] : (ts _> ts'')"
+                             "\<C> \<turnstile> [ReturnCall_indirect j] : (ts'' _> ts')"
+    using e_type_comp[of \<S> \<C> "[$C ConstInt32 c]" "$ReturnCall_indirect j" ts ts']
+          assms(1)
+          unlift_b_e[of \<S> \<C> "[C ConstInt32 c]"]
+          unlift_b_e[of \<S> \<C> "[ReturnCall_indirect j]"]
+    by fastforce
+  hence "ts'' = ts@[(T_i32)]"
+    using b_e_type_value
+    unfolding typeof_def
+    by fastforce
+  moreover
+  have "i' < length (s_inst \<S>)"
+    using assms(5,6) store_typing_imp_inst_length_eq
+    by fastforce
+  hence stypes_eq:"types_t (s_inst \<S> ! i') = types (inst s ! i')"
+    using store_typing_imp_inst_typing[OF assms(5)] store_typing_imp_inst_length_eq[OF assms(5)]
+    unfolding inst_typing.simps
+    by fastforce
+  obtain ts''a where ts''a_def:"j < length (types_t \<C>)"
+                               "ts'' = ts''a @ t1s @ [T_i32]"
+                               "ts' = ts''a @ t2s"
+                               "types_t \<C> ! j = (t1s _> t2s)"
+    using b_e_type_return_call_indirect[OF ts''_def(2), of j] tf_def assms(3,7) stypes_eq
+    unfolding stypes_def
+    by fastforce
+  moreover
+  obtain tf' where tf'_def:"cl_typing \<S> cl tf'"
+    using assms(2,5,6) stab_typed_some_imp_cl_typed
+    by blast
+  hence "cl_typing \<S> cl tf"
+    using assms(4)
+    unfolding cl_typing.simps cl_type_def
+    by auto
+  hence "\<S>\<bullet>\<C> \<turnstile> [Callcl cl] : tf"
+    using e_typing_s_typing.intros(6) assms(6,7) ts''a_def(1)
+    by fastforce
+  ultimately
+  show "\<S>\<bullet>\<C> \<turnstile> [Callcl cl] : (ts _> ts')"
+    using tf_def e_typing_s_typing.intros(3)
+    by auto
+qed
+
+lemma types_preserved_return_call_indirect_None:
+  assumes "\<S>\<bullet>\<C> \<turnstile> [$C ConstInt32 c, $ReturnCall_indirect j] : (ts _> ts')"
+  shows "\<S>\<bullet>\<C> \<turnstile> [Trap] : (ts _> ts')"
+  using e_typing_s_typing.intros(4)
+  by blast
+
+
 lemma types_preserved_callcl_native:
   assumes "\<S>\<bullet>\<C> \<turnstile> ves @ [Callcl cl] : (ts _> ts')"
           "cl = Func_native i (t1s _> t2s) tfs es"
@@ -1611,6 +1673,40 @@ next
     using e_typing_s_typing.intros(4)
     by blast
 next
+  case (return_call s vs j i)
+  obtain  ts'' tf1 tf2 where l_func_t: "length (func_t \<C>) > j"
+                                       "ts = ts''@tf1"
+                                       "ts' = ts''@tf2"
+                                       "((func_t \<C>)!j) = (tf1 _> tf2)"
+    using b_e_type_return_call[of \<C> "ReturnCall j" ts ts' j] return_call(5)
+          unlift_b_e[of _ _ "[ReturnCall j]" "(ts _> ts')"]
+    by fastforce
+  have "i < length (s_inst \<S>)"
+    using return_call(3) store_typing_imp_inst_length_eq[OF return_call(1)]
+    by simp
+  moreover
+  have "j < length (func_t (s_inst \<S> ! i))"
+    using l_func_t(1) return_call(4)
+    by simp
+  ultimately
+  have "cl_typing \<S> (sfunc s i j) (tf1 _> tf2)"
+    using store_typing_imp_func_agree[OF return_call(1)] l_func_t(4) return_call(4)
+    by fastforce
+  thus ?case
+    using e_typing_s_typing.intros(3,6) l_func_t
+    by fastforce
+next
+  case (return_call_indirect_Some s i' c cl j tf vs)
+  show ?case
+    using types_preserved_return_call_indirect_Some[OF return_call_indirect_Some(8,1)]
+          return_call_indirect_Some(2,3,4,6,7)
+    by fastforce
+next
+  case (return_call_indirect_None s i c cl j vs)
+  thus ?case
+    using e_typing_s_typing.intros(4)
+    by blast
+next
   case (callcl_native cl j t1s t2s ts es ves vcs n k m zs s vs i)
   thus ?case
     using types_preserved_callcl_native
@@ -1933,7 +2029,7 @@ proof -
     unfolding const_list_def
     by fastforce
   thus ?thesis
-    using reduce.intros(23) assms(1)
+    using reduce.intros(26) assms(1)
     by blast
 qed
 
@@ -2712,6 +2808,50 @@ next
     using c_def cs_def progress_L0
     by fastforce
 next
+  case (return_call j \<C>)
+  show ?case
+    using progress_L0[OF reduce.intros(5) return_call(6)]
+    by fastforce
+next
+  case (return_call_indirect j \<C> t1s t2s)
+  obtain cs1 cs2 where cs_def:"\<S>\<bullet>\<C> \<turnstile> cs1 : ([]_> t1s)"
+                              "\<S>\<bullet>\<C> \<turnstile> cs2 : ([] _> [T_i32])"
+                              "const_list cs1"
+                              "const_list cs2"
+                              "cs = cs1 @ cs2"
+    using e_type_const_list_cons[OF return_call_indirect(7), of \<S> \<C> t1s "[T_i32]"]
+          e_type_const_list[of _ \<S> \<C> t1s "t1s @ [T_i32]"]
+          return_call_indirect(4)
+    by fastforce
+  obtain c where c_def:"cs2 = [$C ConstInt32 c]"
+    using cs_def(2,4) const_of_i32
+    by fastforce
+  consider 
+    (1) "\<exists>cl tf. stab s i (nat_of_int c) = Some cl \<and> stypes s i j = tf \<and> cl_type cl = tf"
+  | (2) "\<exists>cl. stab s i (nat_of_int c) = Some cl \<and> stypes s i j \<noteq> cl_type cl"
+  | (3) "stab s i (nat_of_int c) = None"
+    by (metis option.collapse)
+  hence "\<exists>a s' vs' es'. \<lparr>s;vs;[$C ConstInt32 c, $ReturnCall_indirect j]\<rparr> \<leadsto>_i \<lparr>s';vs';es'\<rparr>"
+  proof (cases)
+    case 1
+    thus ?thesis
+      using reduce.intros(6)
+      by blast
+  next
+    case 2
+    thus ?thesis
+      using reduce.intros(7)
+      by blast
+  next
+    case 3
+    thus ?thesis
+      using reduce.intros(7)
+      by blast
+  qed
+  then show ?case
+    using c_def cs_def progress_L0
+    by fastforce
+next
   case (get_local j \<C> t)
   obtain v vj vj' where v_def:"v = vs ! j" "vj = (take j vs)" "vj' = (drop (j+1) vs)"
     by blast
@@ -2725,7 +2865,7 @@ next
     using v_def id_take_nth_drop j_def
     by fastforce
   thus ?case
-    using progress_L0[OF reduce.intros(8)[OF vj_len, of s v vj'] get_local(6)]
+    using progress_L0[OF reduce.intros(11)[OF vj_len, of s v vj'] get_local(6)]
     by fastforce
 next
   case (set_local j \<C> t)
@@ -2744,7 +2884,7 @@ next
     using v_def id_take_nth_drop j_def
     by fastforce
   thus ?case
-    using reduce.intros(9)[OF vj_len, of s v vj' v' i] cs_def
+    using reduce.intros(12)[OF vj_len, of s v vj' v' i] cs_def
     by fastforce
 next
   case (tee_local i \<C> t)
@@ -2758,7 +2898,7 @@ next
 next
   case (get_global j \<C> t)
   thus ?case
-    using reduce.intros(10)[of s vs j i] progress_L0
+    using reduce.intros(13)[of s vs j i] progress_L0
     by fastforce
 next
   case (set_global j \<C> t)
@@ -2766,7 +2906,7 @@ next
     using const_of_const_list set_global(4,7) e_type_const_list
     by fastforce
   thus ?case
-    using reduce.intros(11)[of s i j v _ vs]
+    using reduce.intros(14)[of s i j v _ vs]
     by fastforce
 next
   case (load \<C> n a tp_sx t off)
@@ -2786,12 +2926,12 @@ next
     proof (cases "load ((mem s)!j) (nat_of_int c) off (t_length t)")
       case None
       show ?thesis
-        using reduce.intros(13)[OF mem_some _ None, of vs] tp_none load(2)
+        using reduce.intros(16)[OF mem_some _ None, of vs] tp_none load(2)
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(12)[OF mem_some _ Some, of vs] tp_none load(2)
+        using reduce.intros(15)[OF mem_some _ Some, of vs] tp_none load(2)
         by fastforce
     qed
   next
@@ -2803,12 +2943,12 @@ next
     proof (cases "load_packed sx ((mem s)!j) (nat_of_int c) off (tp_length tp) (t_length t)")
       case None
       show ?thesis
-        using reduce.intros(15)[OF mem_some _ None, of vs] tp_some load(2)
+        using reduce.intros(18)[OF mem_some _ None, of vs] tp_some load(2)
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(14)[OF mem_some _ Some, of vs] tp_some load(2)
+        using reduce.intros(17)[OF mem_some _ Some, of vs] tp_some load(2)
         by fastforce
     qed
   qed
@@ -2842,13 +2982,13 @@ next
     proof (cases "store (s.mem s ! j) (nat_of_int c) off (bits v) (t_length t)")
       case None
       show ?thesis
-        using reduce.intros(17)[OF _ mem_some _ None, of vs] t_def tp_none store(2)
+        using reduce.intros(20)[OF _ mem_some _ None, of vs] t_def tp_none store(2)
         unfolding types_agree_def
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(16)[OF _ mem_some _ Some, of vs] t_def tp_none store(2)
+        using reduce.intros(19)[OF _ mem_some _ Some, of vs] t_def tp_none store(2)
         unfolding types_agree_def
         by fastforce
     qed
@@ -2859,13 +2999,13 @@ next
     proof (cases "store_packed (s.mem s ! j) (nat_of_int c) off (bits v) (tp_length a)")
       case None
       show ?thesis
-        using reduce.intros(19)[OF _ mem_some _ None, of t vs] t_def tp_some store(2)
+        using reduce.intros(22)[OF _ mem_some _ None, of t vs] t_def tp_some store(2)
         unfolding types_agree_def
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(18)[OF _ mem_some _ Some, of t vs] t_def tp_some store(2)
+        using reduce.intros(21)[OF _ mem_some _ Some, of t vs] t_def tp_some store(2)
         unfolding types_agree_def
         by fastforce
     qed
@@ -2880,7 +3020,7 @@ next
     unfolding smem_ind_def
     by fastforce
   thus ?case
-    using progress_L0[OF reduce.intros(20)[OF mem_some] current_memory(5), of _ _ vs "[]"]
+    using progress_L0[OF reduce.intros(23)[OF mem_some] current_memory(5), of _ _ vs "[]"]
     by fastforce
 next
   case (grow_memory \<C> n)
@@ -2892,7 +3032,7 @@ next
     unfolding smem_ind_def
     by fastforce
   show ?case
-    using reduce.intros(22)[OF mem_some, of _] c_def
+    using reduce.intros(25)[OF mem_some, of _] c_def
     by fastforce
 next
   case (empty \<C>)
@@ -3182,7 +3322,7 @@ proof -
         using 5(3)[OF 1(1) _ 1(3,4) 5(12)] 1(2)
         by fastforce
       show ?thesis
-        using reduce.intros(24)[OF temp1, of vs] progress_L0[where ?cs = cs, OF _ 5(6)] 5(5)
+        using reduce.intros(27)[OF temp1, of vs] progress_L0[where ?cs = cs, OF _ 5(6)] 5(5)
         by fastforce
     next
       case 2
@@ -3267,7 +3407,7 @@ proof -
         unfolding cl_type_def
         by simp
       have "\<exists>a a'. \<lparr>s;vs;vs2 @ [Callcl cl]\<rparr> \<leadsto>_ i \<lparr>s;vs;a\<rparr>"
-        using reduce.intros(5)[OF func_native_def] e_type_const_conv_vs[OF vs_def(5)] l
+        using reduce.intros(8)[OF func_native_def] e_type_const_conv_vs[OF vs_def(5)] l
         unfolding n_zeros_def
         by fastforce
       thus ?thesis
@@ -3287,7 +3427,7 @@ proof -
       proof (cases "host_apply s (t1s _> t2s) x22 vcs hs")
         case None
         thus ?thesis
-          using reduce.intros(7)[OF func_host_def] l vcs_def
+          using reduce.intros(10)[OF func_host_def] l vcs_def
           by fastforce
       next
         case (Some a)
@@ -3297,7 +3437,7 @@ proof -
           using e_typing_imp_list_types_agree vs_def(2,4) vcs_def
           by simp
         thus ?thesis
-          using reduce.intros(6)[OF func_host_def _ _ _ _ ha_def] l vcs_def
+          using reduce.intros(9)[OF func_host_def _ _ _ _ ha_def] l vcs_def
                 host_apply_respect_type[OF _ ha_def]
           by fastforce
       qed
@@ -3346,7 +3486,7 @@ proof -
         unfolding const_list_def
         by fastforce
       show ?thesis
-        using reduce.intros(23)[OF _ temp5 temp6] 7(7) red_def
+        using reduce.intros(26)[OF _ temp5 temp6] 7(7) red_def
         by fastforce
     next
       case 2

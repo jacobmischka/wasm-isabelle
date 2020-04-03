@@ -391,6 +391,22 @@ lemma b_e_type_call_indirect:
   using assms
   by (induction "[e]" "(ts _> ts')" arbitrary: ts ts' rule: b_e_typing.induct, auto)
 
+lemma b_e_type_return_call:
+  assumes "\<C> \<turnstile> [e] : (ts _> ts')"
+          "e = ReturnCall i"
+  shows  "i < length (func_t \<C>)"
+         "\<exists>ts'' tf1 tf2. ts = ts''@tf1 \<and> ts' = ts''@tf2 \<and> (func_t \<C>)!i = (tf1 _> tf2)"
+  using assms
+  by (induction "[e]" "(ts _> ts')" arbitrary: ts ts' rule: b_e_typing.induct, auto)
+
+lemma b_e_type_return_call_indirect:
+  assumes "\<C> \<turnstile> [e] : (ts _> ts')"
+          "e = ReturnCall_indirect i"
+  shows "i < length (types_t \<C>)"
+        "\<exists>ts'' tf1 tf2. ts = ts''@tf1@[T_i32] \<and> ts' = ts''@tf2 \<and> (types_t \<C>)!i = (tf1 _> tf2)"
+  using assms
+  by (induction "[e]" "(ts _> ts')" arbitrary: ts ts' rule: b_e_typing.induct, auto)
+
 lemma b_e_type_get_local:
   assumes "\<C> \<turnstile> [e] : (ts _> ts')"
           "e = Get_local i"
