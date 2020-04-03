@@ -1851,7 +1851,7 @@ proof -
           (\<exists>j. (res = ves \<and> e = ($ReturnCall j)) \<or>
            (\<exists>n lfilled j ves es_c es n' les'. Lfilled_exact n lfilled ((vs_to_es res) @ [$ReturnCall j] @ es_c) es \<and>
               e = Label n' les' es))"
-  proof (induction d i "(s,vs,es)" and d i "(s,vs,ves,e)" arbitrary: s vs es s' vs' res and s vs ves e s' vs' res rule: run_step_run_one_step.induct)
+  proof (induction d i "(s,vs,es)" and d i "(s,vs,ves,e)" arbitrary: s vs es s' vs' res and s vs ves e s' vs' c res rule: run_step_run_one_step.induct)
     case (1 d i s vs es)
     obtain ves es' where split_vals_es:"split_vals_e es = (ves, es')"
       by (metis surj_pair)
@@ -1891,7 +1891,7 @@ proof -
           by fastforce
     qed
   next
-    case (2 d i s vs ves e s' vs' c)
+    case (2 d i s vs ves e s' vs' c' res)
     consider (a) "(\<exists>j. e = $ReturnCall j)" | (b) "(\<exists>n les es. e = Label n les es)"
       using run_one_step_return_call[OF 2(3)]
       by blast
@@ -1905,9 +1905,9 @@ proof -
       case b
       then obtain n les es where e_def:"e = Label n les es"
         by blast
-      hence "run_one_step d i (s, vs, ves,  Label n les es) = (s', vs', RSReturnCall c res)"
+      hence "run_one_step d i (s, vs, ves,  Label n les es) = (s', vs', RSReturnCall c' res)"
         using 2(3) by simp
-      hence "run_step d i (s, vs, es) = (s', vs', RSReturnCall c res)"
+      hence "run_step d i (s, vs, es) = (s', vs', RSReturnCall c' res)"
         using run_one_step_label_return_call_imp_return
         by fastforce
       thus ?thesis
@@ -2305,7 +2305,7 @@ proof -
           thus ?thesis
           proof (cases "stypes s i x13 = cl_type cl")
             case True
-            hence "\<lparr>s;vs;(vs_to_es list) @ [$C ConstInt32 c, $ReturnCall_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list) @ [Callcl cl]\<rparr>"
+            hence "\<lparr>s;vs;(vs_to_es list) @ [$C ConstInt32 c, $ReturnCall_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list) @ [$(ReturnCall (nat_of_int c))]\<rparr>"
               using progress_L0_left[OF reduce.intros(6)] True Some is_const_list_vs_to_es_list[of "rev list"]
               by fastforce
             thus ?thesis
@@ -2943,13 +2943,13 @@ proof -
               hence es'_def:"es' = ((vs_to_es ((take ln x32)@ves)@[x31])) \<and> s' = s'' \<and> vs = vs' \<and> ln \<le> length x32"
                 using outer_outer_false False run_step_is Local 2(3) Suc
                 by (cases "ln \<le> length x32") auto
-              then obtain n lfilled es_c where local_eqs:"s=s'" "vs=vs'" "ln \<le> length x32" "Lfilled_exact n lfilled ((vs_to_es x32) @ [$ReturnCall j] @ es_c) es"
+              then obtain n lfilled j' es_c where local_eqs:"s=s'" "vs=vs'" "ln \<le> length x32" "Lfilled_exact n lfilled ((vs_to_es x32) @ [$ReturnCall j'] @ es_c) es"
                 using run_step_is run_step_return_call_imp_lfilled RSReturnCall
                 by fastforce
-              then obtain lfilled' where lfilled_int:"Lfilled n lfilled' ((vs_to_es x32) @ [$ReturnCall j]) es"
+              then obtain lfilled' where lfilled_int:"Lfilled n lfilled' ((vs_to_es x32) @ [$ReturnCall j']) es"
                 using lfilled_collapse2[OF Lfilled_exact_imp_Lfilled]
                 by fastforce
-              obtain lfilled'' where "Lfilled n lfilled'' ((drop (length x32 - ln) (vs_to_es x32)) @ [$ReturnCall j]) es"
+              obtain lfilled'' where "Lfilled n lfilled'' ((drop (length x32 - ln) (vs_to_es x32)) @ [$ReturnCall j']) es"
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x32"] local_eqs(3)
                 by fastforce
               hence "\<lparr>[Local ln j vls es]\<rparr> \<leadsto> \<lparr>(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
