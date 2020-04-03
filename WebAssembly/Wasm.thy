@@ -201,9 +201,10 @@ inductive reduce :: "[s, v list, e list, nat, s, v list, e list] \<Rightarrow> b
 | call_indirect_Some:"\<lbrakk>stab s i (nat_of_int c) = Some cl; stypes s i j = tf; cl_type cl = tf\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(Call_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Callcl cl]\<rparr>"
 | call_indirect_None:"\<lbrakk>(stab s i (nat_of_int c) = Some cl \<and> stypes s i j \<noteq> cl_type cl) \<or> stab s i (nat_of_int c) = None\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(Call_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
   \<comment> \<open>\<open>return_call\<close>\<close>
+(* FIXME: This is not right *)
 | return_call:"\<lparr>s;vs;[$(ReturnCall j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Callcl (sfunc s i j)]\<rparr>"
   \<comment> \<open>\<open>call_indirect\<close>\<close>
-| return_call_indirect_Some:"\<lbrakk>stab s i (nat_of_int c) = Some cl; stypes s i j = tf; cl_type cl = tf\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(ReturnCall_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Callcl cl]\<rparr>"
+| return_call_indirect_Some:"\<lbrakk>stab s i (nat_of_int c) = Some cl; stypes s i j = tf; cl_type cl = tf\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(ReturnCall_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[$(ReturnCall (nat_of_int c))]\<rparr>"
 | return_call_indirect_None:"\<lbrakk>(stab s i (nat_of_int c) = Some cl \<and> stypes s i j \<noteq> cl_type cl) \<or> stab s i (nat_of_int c) = None\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(ReturnCall_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
   \<comment> \<open>\<open>call\<close>\<close>
 | callcl_native:"\<lbrakk>cl = Func_native j (t1s _> t2s) ts es; ves = ($$* vcs); length vcs = n; length ts = k; length t1s = n; length t2s = m; (n_zeros ts = zs) \<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [Callcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Local m j (vcs@zs) [$(Block ([] _> t2s) es)]]\<rparr>"
