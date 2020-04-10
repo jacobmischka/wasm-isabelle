@@ -781,7 +781,7 @@ lemma types_preserved_return_call_indirect_Some:
           "store_typing s \<S>"
           "i' < length (inst s)"
           "\<C> = (s_inst \<S> ! i') \<lparr>local := local (s_inst \<S> ! i') @ tvs, label := arb_labs, return := arb_return\<rparr>"
-  shows "\<S>\<bullet>\<C> \<turnstile> [Callcl cl] : (ts _> ts')"
+  shows "\<S>\<bullet>\<C> \<turnstile> [$ReturnCall (nat_of_int c)] : (ts _> ts')"
 proof -
   obtain t1s t2s where tf_def:"tf = (t1s _> t2s)"
     using tf.exhaust by blast
@@ -819,12 +819,13 @@ proof -
     using assms(4)
     unfolding cl_typing.simps cl_type_def
     by auto
-  hence "\<S>\<bullet>\<C> \<turnstile> [Callcl cl] : tf"
-    using e_typing_s_typing.intros(6) assms(6,7) ts''a_def(1)
+  hence "\<S>\<bullet>\<C> \<turnstile> [$ReturnCall (nat_of_int c)] : tf"
+    using e_typing_s_typing.intros(1) assms(6,7) ts''a_def(1)
+    print_statement e_typing_s_typing.intros
     by fastforce
   ultimately
-  show "\<S>\<bullet>\<C> \<turnstile> [Callcl cl] : (ts _> ts')"
-    using tf_def e_typing_s_typing.intros(3)
+  show "\<S>\<bullet>\<C> \<turnstile> [$ReturnCall (nat_of_int c)] : (ts _> ts')"
+    using tf_def e_typing_s_typing.intros(2)
     by auto
 qed
 
@@ -1648,6 +1649,7 @@ next
           unlift_b_e[of _ _ "[Call j]" "(ts _> ts')"]
     by fastforce
   have "i < length (s_inst \<S>)"
+    print_statement call
     using call(3) store_typing_imp_inst_length_eq[OF call(1)]
     by simp
   moreover
@@ -1662,7 +1664,7 @@ next
     using e_typing_s_typing.intros(3,6) l_func_t
     by fastforce
 next
-  case (call_indirect_Some s i' c cl j tf vs)
+  case (call_indirect_Some s i c cl j tf vs)
   show ?case
     using types_preserved_call_indirect_Some[OF call_indirect_Some(8,1)]
           call_indirect_Some(2,3,4,6,7)
@@ -1673,24 +1675,25 @@ next
     using e_typing_s_typing.intros(4)
     by blast
 next
-  case (return_call s vs j i)
-  obtain  ts'' tf1 tf2 where l_func_t: "length (func_t \<C>) > j"
+  case (return_call vs' n j lholed j' es s vs i vls es)
+  obtain  ts'' tf1 tf2 where l_func_t: "length (func_t \<C>) > j'"
                                        "ts = ts''@tf1"
                                        "ts' = ts''@tf2"
                                        "((func_t \<C>)!j) = (tf1 _> tf2)"
-    using b_e_type_return_call[of \<C> "ReturnCall j" ts ts' j] return_call(5)
-          unlift_b_e[of _ _ "[ReturnCall j]" "(ts _> ts')"]
+    using b_e_type_return_call[of \<C> "ReturnCall j'" ts ts' j'] return_call(8)
+          unlift_b_e[of _ _ "[ReturnCall j']" "(ts _> ts')"]
     by fastforce
   have "i < length (s_inst \<S>)"
-    using return_call(3) store_typing_imp_inst_length_eq[OF return_call(1)]
+    print_statement call_indirect_Some
+    using return_call(6) store_typing_imp_inst_length_eq[OF return_call(4)]
     by simp
   moreover
   have "j < length (func_t (s_inst \<S> ! i))"
-    using l_func_t(1) return_call(4)
+    using l_func_t(1) return_call(7)
     by simp
   ultimately
   have "cl_typing \<S> (sfunc s i j) (tf1 _> tf2)"
-    using store_typing_imp_func_agree[OF return_call(1)] l_func_t(4) return_call(4)
+    using store_typing_imp_func_agree[OF return_call(4)] l_func_t(4) return_call(7)
     by fastforce
   thus ?case
     using e_typing_s_typing.intros(3,6) l_func_t
