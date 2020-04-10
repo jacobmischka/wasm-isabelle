@@ -1848,10 +1848,10 @@ proof -
            s = s' \<and> vs = vs' \<and> (\<exists>n lfilled j es_c. Lfilled_exact n lfilled ((vs_to_es res) @ [$ReturnCall j] @ es_c) es)"
   and  "(run_one_step d i (s,vs,ves,e) = (s', vs', RSReturnCall c res)) \<Longrightarrow>
           s = s' \<and> vs = vs' \<and>
-          (\<exists>j. (res = ves \<and> e = ($ReturnCall j)) \<or>
+          ((\<exists>j. res = ves \<and> e = ($ReturnCall j)) \<or>
            (\<exists>n lfilled j ves es_c es n' les'. Lfilled_exact n lfilled ((vs_to_es res) @ [$ReturnCall j] @ es_c) es \<and>
               e = Label n' les' es))"
-  proof (induction d i "(s,vs,es)" and d i "(s,vs,ves,e)" arbitrary: s vs es s' vs' res and s vs ves e s' vs' c res rule: run_step_run_one_step.induct)
+  proof (induction d i "(s,vs,es)" and d i "(s,vs,ves,e)" arbitrary: s vs es s' vs' c res and s vs ves e s' vs' c res rule: run_step_run_one_step.induct)
     case (1 d i s vs es)
     obtain ves es' where split_vals_es:"split_vals_e es = (ves, es')"
       by (metis surj_pair)
@@ -1891,7 +1891,7 @@ proof -
           by fastforce
     qed
   next
-    case (2 d i s vs ves e s' vs' c' res)
+    case (2 d i s vs ves e s' vs')
     consider (a) "(\<exists>j. e = $ReturnCall j)" | (b) "(\<exists>n les es. e = Label n les es)"
       using run_one_step_return_call[OF 2(3)]
       by blast
@@ -1905,9 +1905,9 @@ proof -
       case b
       then obtain n les es where e_def:"e = Label n les es"
         by blast
-      hence "run_one_step d i (s, vs, ves,  Label n les es) = (s', vs', RSReturnCall c' res)"
+      hence "run_one_step d i (s, vs, ves,  Label n les es) = (s', vs', RSReturnCall c res)"
         using 2(3) by simp
-      hence "run_step d i (s, vs, es) = (s', vs', RSReturnCall c' res)"
+      hence "run_step d i (s, vs, es) = (s', vs', RSReturnCall c res)"
         using run_one_step_label_return_call_imp_return
         by fastforce
       thus ?thesis
@@ -2952,14 +2952,19 @@ proof -
               obtain lfilled'' where "Lfilled n lfilled'' ((drop (length x32 - ln) (vs_to_es x32)) @ [$ReturnCall j']) es"
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x32"] local_eqs(3)
                 by fastforce
+(*
               hence "\<lparr>[Local ln j vls es]\<rparr> \<leadsto> \<lparr>(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
                 using reduce.intros(5) local_eqs(3) is_const_list_vs_to_es_list
                 unfolding drop_map
                 by fastforce
-              hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
-                using reduce.intros(1) local_eqs(1,2)
+
+              I think I need to deconstruct x31 now?
+*)
+              hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x32 - ln) (vs_to_es x32))@[x31]\<rparr>"
+                using reduce.intros(5) local_eqs(1,2,3) is_const_list_vs_to_es_list
+                unfolding drop_map
                 by fastforce
-              have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
+              have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@(drop (length x32 - ln) (vs_to_es x32))@[x31]\<rparr>"
                 using progress_L0[OF 1 is_const_list_vs_to_es_list[of "rev ves"], of "[]"] Local
                 by fastforce
               thus ?thesis
