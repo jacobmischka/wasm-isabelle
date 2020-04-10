@@ -812,21 +812,25 @@ proof -
     unfolding stypes_def
     by fastforce
   moreover
-  obtain tf' where tf'_def:"cl_typing \<S> cl tf'"
-    using assms(2,5,6) stab_typed_some_imp_cl_typed
-    by blast
-  hence "cl_typing \<S> cl tf"
-    using assms(4)
-    unfolding cl_typing.simps cl_type_def
+  have "\<C> \<turnstile> [ReturnCall (nat_of_int c)] : t1s _> t2s"
+    sorry
+  hence "(nat_of_int c) < length (func_t \<C>)"
+    using b_e_type_return_call
     by auto
-  hence "\<S>\<bullet>\<C> \<turnstile> [$ReturnCall (nat_of_int c)] : tf"
-    using e_typing_s_typing.intros(1) assms(6,7) ts''a_def(1)
-    print_statement e_typing_s_typing.intros
-    by fastforce
+  moreover
+  have "func_t \<C> ! (nat_of_int c) = tf"
+    sorry
+  print_statement b_e_typing.intros
+  print_statement e_typing_s_typing.intros
+  moreover have "\<C> \<turnstile> [ReturnCall (nat_of_int c)] : tf"
+    using \<open>\<C> \<turnstile> [ReturnCall (nat_of_int c)] : t1s _> t2s\<close> tf_def
+    by blast
+  hence "\<S>\<bullet>\<C> \<turnstile> $* [ReturnCall (nat_of_int c)] : tf"
+    using e_typing_s_typing.intros(1)
+    by blast
   ultimately
   show "\<S>\<bullet>\<C> \<turnstile> [$ReturnCall (nat_of_int c)] : (ts _> ts')"
-    using tf_def e_typing_s_typing.intros(2)
-    by auto
+    by (metis append.assoc append_same_eq e_typing_s_typing.intros(3) tf_def to_e_list_1)
 qed
 
 lemma types_preserved_return_call_indirect_None:
