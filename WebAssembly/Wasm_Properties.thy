@@ -1688,7 +1688,6 @@ next
           unlift_b_e[of _ _ "[ReturnCall j']" "(ts _> ts')"]
     by fastforce
   have "i < length (s_inst \<S>)"
-    print_statement call_indirect_Some
     using return_call(6) store_typing_imp_inst_length_eq[OF return_call(4)]
     by simp
   moreover
@@ -1703,7 +1702,7 @@ next
     using e_typing_s_typing.intros(3,6) l_func_t
     by fastforce
 next
-  case (return_call_indirect_Some s i' c cl j tf vs)
+  case (return_call_indirect_Some s i c cl j tf vs)
   show ?case
     using types_preserved_return_call_indirect_Some[OF return_call_indirect_Some(8,1)]
           return_call_indirect_Some(2,3,4,6,7)
