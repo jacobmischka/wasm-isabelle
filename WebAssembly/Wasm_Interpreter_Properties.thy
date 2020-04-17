@@ -2949,26 +2949,20 @@ proof -
               then obtain lfilled' where lfilled_int:"Lfilled n lfilled' ((vs_to_es x32) @ [$ReturnCall j']) es"
                 using lfilled_collapse2[OF Lfilled_exact_imp_Lfilled]
                 by fastforce
+              have x31_def: "x31 = Callcl (sfunc s i j')"
+                sorry
               obtain lfilled'' where "Lfilled n lfilled'' ((drop (length x32 - ln) (vs_to_es x32)) @ [$ReturnCall j']) es"
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x32"] local_eqs(3)
                 by fastforce
-(*
-              hence "\<lparr>[Local ln j vls es]\<rparr> \<leadsto> \<lparr>(drop (length x32 - ln) (vs_to_es x32))\<rparr>"
-                using reduce.intros(5) local_eqs(3) is_const_list_vs_to_es_list
+              hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x32 - ln) (vs_to_es x32))@[Callcl (sfunc s i j')]\<rparr>"
+                using reduce.return_call local_eqs(1,2,3) is_const_list_vs_to_es_list
                 unfolding drop_map
                 by fastforce
-
-              I think I need to deconstruct x31 now?
-*)
-              hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x32 - ln) (vs_to_es x32))@[x31]\<rparr>"
-                using reduce.intros(5) local_eqs(1,2,3) is_const_list_vs_to_es_list
-                unfolding drop_map
-                by fastforce
-              have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@(drop (length x32 - ln) (vs_to_es x32))@[x31]\<rparr>"
+              have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@(drop (length x32 - ln) (vs_to_es x32))@[Callcl (sfunc s i j')]\<rparr>"
                 using progress_L0[OF 1 is_const_list_vs_to_es_list[of "rev ves"], of "[]"] Local
                 by fastforce
               thus ?thesis
-                using es'_def
+                using es'_def x31_def
                 unfolding drop_map rev_take[symmetric]
                 by auto
             next
