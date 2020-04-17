@@ -2781,6 +2781,7 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
+    print_statement call_indirect
     using e_type_const_list_cons[OF call_indirect(7), of \<S> \<C> t1s "[T_i32]"]
           e_type_const_list[of _ \<S> \<C> t1s "t1s @ [T_i32]"]
           call_indirect(4)
@@ -2825,9 +2826,9 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-    using e_type_const_list_cons[OF return_call_indirect(7), of \<S> \<C> t1s "[T_i32]"]
+    using e_type_const_list_cons[OF return_call_indirect(8), of \<S> \<C> t1s "[T_i32]"]
           e_type_const_list[of _ \<S> \<C> t1s "t1s @ [T_i32]"]
-          return_call_indirect(4)
+          return_call_indirect(5)
     by fastforce
   obtain c where c_def:"cs2 = [$C ConstInt32 c]"
     using cs_def(2,4) const_of_i32
