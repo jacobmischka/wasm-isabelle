@@ -41,7 +41,7 @@ inductive b_e_typing :: "[t_context, b_e list, tf] \<Rightarrow> bool" ("_ \<tur
   \<comment> \<open>\<open>call_indirect\<close>\<close>
 | call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Call_indirect i] : (t1s @ [T_i32] _> t2s)"
   \<comment> \<open>\<open>return_call\<close>\<close>
-| return_call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = tf; (return \<C>) = Some t\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall i] : tf"
+| return_call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = tf; (return \<C>) = Some ts\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall i] : tf"
   \<comment> \<open>\<open>return_call_indirect\<close>\<close>
 | return_call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None; (return \<C>) = Some t\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall_indirect i] : (t1s @ [T_i32] _> t2s)"
   \<comment> \<open>\<open>get_local\<close>\<close>

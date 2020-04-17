@@ -1038,6 +1038,82 @@ proof -
     by fastforce
 qed
 
+lemma type_const_return_call:
+  assumes "Lfilled i lholed (vs @ [$ReturnCall j]) LI"
+          "(return \<C>) = Some tcs"
+          "length tcs = length vs"
+          "\<S>\<bullet>\<C> \<turnstile> LI : (ts _> ts')"
+          "const_list vs"
+  shows "\<S>\<bullet>\<C>' \<turnstile> vs : ([] _> tcs)"
+  using assms
+proof (induction i arbitrary: j ts ts' lholed \<C> LI \<C>')
+  case 0
+  obtain vs' es' where "LI = (vs' @ (vs @ [$ReturnCall j]) @ es')"
+    using Lfilled.simps[of 0 lholed "(vs @ [$ReturnCall j])" LI] 0(1)
+    by fastforce
+  then obtain ts'' ts''' where "\<S>\<bullet>\<C> \<turnstile> vs' : (ts _> ts'')"
+                               "\<S>\<bullet>\<C> \<turnstile> (vs @ [$ReturnCall j]) : (ts'' _> ts''')"
+                               "\<S>\<bullet>\<C> \<turnstile> es' : (ts''' _> ts')"
+    using e_type_comp_conc2[of \<S> \<C> vs' "(vs @ [$ReturnCall j])" es'] 0(4)
+    by fastforce
+  then obtain ts_b where ts_b_def:"\<S>\<bullet>\<C> \<turnstile> vs : (ts'' _> ts_b)" "\<S>\<bullet>\<C> \<turnstile> [$ReturnCall j] : (ts_b _> ts''')"
+    using e_type_comp_conc1
+    by fastforce
+  then obtain ts_c where ts_c_def:"ts_b = ts_c @ tcs" "(return \<C>) = Some tcs"
+    using 0(2) b_e_type_return_call[of \<C>] unlift_b_e[of \<S> \<C> "[ReturnCall j]" "ts_b _> ts'''"]
+    by fastforce
+  obtain tcs' where "ts_b = ts'' @ tcs'" "length vs = length tcs'" "\<S>\<bullet>\<C>' \<turnstile> vs : ([] _> tcs')"
+    using ts_b_def(1) e_type_const_list 0(5)
+    by fastforce
+  thus ?case
+    using 0(3) ts_c_def
+    by simp
+next
+  case (Suc i)
+  obtain vs' n l les les' LK where es_def:"lholed = (LRec vs' n les l les')"
+                                           "Lfilled i l (vs @ [$ReturnCall j]) LK"
+                                           "LI = (vs' @ [Label n les LK] @ les')"
+    using Lfilled.simps[of "(Suc i)" lholed "(vs @ [$ReturnCall j])" LI] Suc(2)
+    by fastforce
+  then obtain ts'' ts''' where "\<S>\<bullet>\<C> \<turnstile> [Label n les LK] : (ts'' _> ts''')"
+    using e_type_comp_conc2[of \<S> \<C> vs' "[Label n les LK]" les'] Suc(5)
+    by fastforce
+  then obtain tls t2s where
+       "ts''' = ts'' @ t2s"
+       "length tls = n"
+       "\<S>\<bullet>\<C> \<turnstile> les : (tls _> t2s)"
+       "\<S>\<bullet>\<C>\<lparr>label := [tls] @ label \<C>\<rparr> \<turnstile> LK : ([] _> t2s)"
+       "return (\<C>\<lparr>label := [tls] @ label \<C>\<rparr>) = Some tcs"
+    using e_type_label[of \<S> \<C> n les LK ts'' ts'''] Suc(3)
+    by fastforce
+  then show ?case
+    using Suc(1)[OF es_def(2) _ assms(3) _ assms(5)]
+    by fastforce
+qed
+
+lemma types_preserved_return_call:
+  assumes "\<lparr>[Local n i vls LI]\<rparr> \<leadsto> \<lparr>ves\<rparr>"
+          "\<S>\<bullet>\<C> \<turnstile> [Local n i vls LI] : (ts _> ts')"
+          "const_list ves"
+          "length ves = n"
+          "Lfilled j lholed (ves @ [$ReturnCall j']) LI"
+  shows "\<S>\<bullet>\<C> \<turnstile> ves : (ts _> ts')"
+proof -
+  obtain tls \<C>' where l_def:"i < length (s_inst \<S>)"
+                        "\<C>' = ((s_inst \<S>)!i)\<lparr>local := (local ((s_inst \<S>)!i)) @ (map typeof vls), return := Some tls\<rparr>"
+                        "\<S>\<bullet>\<C>' \<turnstile> LI : ([] _> tls)"
+                        "ts' = ts @ tls"
+                        "length tls = n"
+    using e_type_local[OF assms(2)]
+    by blast
+  hence "\<S>\<bullet>\<C> \<turnstile> ves : ([] _> tls)"
+    using type_const_return_call[OF assms(5) _ _ l_def(3)] assms(3-5)
+    by fastforce
+  thus ?thesis
+    using e_typing_s_typing.intros(3) l_def(4)
+    by fastforce
+qed
+
 lemma type_const_br:
   assumes "Lfilled i lholed (vs @ [$Br (i+k)]) LI"
           "length (label \<C>) > k"
@@ -1679,13 +1755,14 @@ next
     using e_typing_s_typing.intros(4)
     by blast
 next
-  case (return_call vs' n j lholed j' es s vs i vls es)
-  obtain  ts'' tf1 tf2 where l_func_t: "length (func_t \<C>) > j'"
+  case (return_call vs' n j' lholed j es s vs i' vls)
+  obtain  ts'' tf1 tf2 where l_func_t: "length (func_t \<C>) > j"
                                        "ts = ts''@tf1"
                                        "ts' = ts''@tf2"
                                        "((func_t \<C>)!j) = (tf1 _> tf2)"
-    using b_e_type_return_call[of \<C> "ReturnCall j'" ts ts' j'] return_call(8)
-          unlift_b_e[of _ _ "[ReturnCall j']" "(ts _> ts')"]
+    print_statement unlift_b_e
+    using b_e_type_return_call[of \<C> "ReturnCall j" ts ts' j] return_call(8)
+          unlift_b_e[of _ _ "[ReturnCall j]" "(ts _> ts')"]
     by fastforce
   have "i < length (s_inst \<S>)"
     using return_call(6) store_typing_imp_inst_length_eq[OF return_call(4)]
@@ -2772,6 +2849,7 @@ next
 next
   case (call j \<C>)
   show ?case
+    print_statement call
     using progress_L0[OF reduce.intros(2) call(6)]
     by fastforce
 next
@@ -2781,7 +2859,6 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-    print_statement call_indirect
     using e_type_const_list_cons[OF call_indirect(7), of \<S> \<C> t1s "[T_i32]"]
           e_type_const_list[of _ \<S> \<C> t1s "t1s @ [T_i32]"]
           call_indirect(4)
@@ -2817,7 +2894,7 @@ next
 next
   case (return_call j \<C>)
   show ?case
-    using progress_L0[OF reduce.intros(5) return_call(6)]
+    using progress_L0[OF reduce.intros(5) return_call(7)]
     by fastforce
 next
   case (return_call_indirect j \<C> t1s t2s)
