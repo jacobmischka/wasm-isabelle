@@ -1757,14 +1757,11 @@ next
     by blast
 next
   case (return_call vs' n j' lholed j es s vs i' vls i)
-  obtain  ts'' tf1 tf2 where l_func_t: "length (func_t \<C>) > j"
-                                       "ts = ts''@tf1"
-                                       "ts' = ts''@tf2"
-                                       "((func_t \<C>)!j) = (tf1 _> tf2)"
-    print_statement unlift_b_e
+  obtain  ts_c ts'' where l_func_t: "length (func_t \<C>) > j"
+                                    "ts = ts_c @ ts'' \<and> (return \<C>) = Some ts''"
+    print_statement return_call
     sorry
-(*
-    using b_e_type_return_call[of \<C> "ReturnCall j" ts ts' j] return_call(8)
+(*    using b_e_type_return_call[of \<C> "ReturnCall j" ts ts' j] return_call(8)
           unlift_b_e[of _ _ "[ReturnCall j]" "(ts _> ts')"]
     by fastforce
 *)
@@ -3321,7 +3318,7 @@ lemma progress_e:
   assumes "\<S>\<bullet>None \<tturnstile>_i vs;cs_es : ts'"
           "\<And> k lholed. \<not>(Lfilled k lholed [$Return] cs_es)"
           "\<And> i k lholed. (Lfilled k lholed [$Br (i)] cs_es) \<Longrightarrow> i < k"
-          "\<And> i k lholed. \<not>(Lfilled k lholed [$ReturnCall (i)] cs_es)"
+          "\<And> i k lholed. (Lfilled k lholed [$ReturnCall (i)] cs_es) \<Longrightarrow> i < k"
           "cs_es \<noteq> [Trap]"
           "\<not> const_list (cs_es)"
           "store_typing s \<S>"
@@ -3336,7 +3333,7 @@ proof -
        \<S>\<bullet>\<C> \<turnstile> cs : ([] _> ts_c) \<Longrightarrow>
        (\<And> k lholed. \<not>(Lfilled k lholed [$Return] cs_es)) \<Longrightarrow>
        (\<And> i k lholed. (Lfilled k lholed [$Br (i)] cs_es) \<Longrightarrow> i < k) \<Longrightarrow>
-       (\<And> i k lholed. \<not>(Lfilled k lholed [$ReturnCall (i)] cs_es)) \<Longrightarrow>
+       (\<And> i k lholed. (Lfilled k lholed [$ReturnCall (i)] cs_es) \<Longrightarrow> i < k) \<Longrightarrow>
        cs_es \<noteq> [Trap] \<Longrightarrow>
        \<not> const_list (cs_es) \<Longrightarrow>
        store_typing s \<S> \<Longrightarrow>
@@ -3348,7 +3345,7 @@ proof -
       "\<S>\<bullet>None \<tturnstile>_i vs;cs_es : ts' \<Longrightarrow>
        (\<And> k lholed. \<not>(Lfilled k lholed [$Return] cs_es)) \<Longrightarrow>
        (\<And> i k lholed. (Lfilled k lholed [$Br (i)] cs_es) \<Longrightarrow> i < k) \<Longrightarrow>
-       (\<And> i k lholed. \<not>(Lfilled k lholed [$ReturnCall (i)] cs_es)) \<Longrightarrow>
+       (\<And> i k lholed. (Lfilled k lholed [$ReturnCall (i)] cs_es) \<Longrightarrow> i < k) \<Longrightarrow>
        cs_es \<noteq> [Trap] \<Longrightarrow>
        \<not> const_list (cs_es) \<Longrightarrow>
        store_typing s \<S> \<Longrightarrow>
@@ -3449,19 +3446,19 @@ proof -
           by blast
       qed
       moreover
-      have "\<And>i k lholed.  \<not> Lfilled k lholed [$ReturnCall i] (cs @ es)"
+      have "\<And>i k lholed.  Lfilled k lholed [$ReturnCall i] (cs @ es) \<Longrightarrow> i < k"
       proof -
         {
-          assume "\<exists>i k lholed.  Lfilled k lholed [$ReturnCall i] (cs @ es)"
-          then obtain i k lholed where local_assms:"Lfilled k lholed [$ReturnCall i] (cs @ es)"
+          assume "\<exists>i k lholed.  Lfilled k lholed [$ReturnCall i] (cs @ es) \<and> \<not>(i < k)"
+          then obtain i k lholed where local_assms:"Lfilled k lholed [$ReturnCall i] (cs @ es)" "\<not>(i < k)"
             by blast
-          hence "\<exists>lholed'. Lfilled k lholed' [$ReturnCall i] (cs @ es @ [e])"
+          hence "\<exists>lholed'. Lfilled k lholed' [$ReturnCall i] (cs @ es @ [e]) \<and> \<not>(i < k)"
           proof (cases rule: Lfilled.cases)
             case (L0 vs es')
             obtain lholed' where "lholed' = LBase vs (es'@[e])"
               by blast
             thus ?thesis
-              print_statement Lfilled.intros
+              print_statement L0
               using L0
               by (metis Lfilled.intros(1) append.assoc)
           next
@@ -3476,7 +3473,7 @@ proof -
             using 2(6,11)
             by blast
         }
-        thus "\<And>i k lholed.  \<not> Lfilled k lholed [$ReturnCall i] (cs @ es)"
+        thus "\<And>i k lholed.  Lfilled k lholed [$ReturnCall i] (cs @ es) \<Longrightarrow> i < k"
           by blast
       qed
       moreover
@@ -3515,13 +3512,13 @@ proof -
   case (5 \<S> ts j vls es n \<C>)
     consider (1) "(\<And>k lholed. \<not> Lfilled k lholed [$Return] es)"
                  "(\<And>k lholed i. (Lfilled k lholed [$Br i] es) \<Longrightarrow> i < k)"
-                 "(\<And>k lholed i. \<not> Lfilled k lholed [$ReturnCall i] es)"
+                 "(\<And>k lholed i. (Lfilled k lholed [$ReturnCall i] es) \<Longrightarrow> i < k)"
                  "es \<noteq> [Trap]"
                  "\<not> const_list es"
            | (2) "\<exists>k lholed. Lfilled k lholed [$Return] es"
            | (3) "const_list es \<or> (es = [Trap])"
            | (4) "\<exists>k lholed i. (Lfilled k lholed [$Br i] es) \<and> i \<ge> k"
-           | (5) "\<exists>k lholed i. (Lfilled k lholed [$ReturnCall i] es)"
+           | (5) "\<exists>k lholed i. (Lfilled k lholed [$ReturnCall i] es) \<and> i \<ge> k"
       using not_le_imp_less
       by blast
     thus ?case
@@ -3679,7 +3676,7 @@ proof -
     case (7 \<S> \<C> e0s ts t2s es n)
     consider (1) "(\<And>k lholed. \<not> Lfilled k lholed [$Return] es)"
                  "(\<And>k lholed i. (Lfilled k lholed [$Br i] es) \<Longrightarrow> i < k)"
-                 "(\<And>k lholed i. \<not> (Lfilled k lholed [$ReturnCall i] es))"
+                 "(\<And>k lholed i. (Lfilled k lholed [$ReturnCall i] es) \<Longrightarrow> i < k)"
                  "es \<noteq> [Trap]"
                  "\<not> const_list es"
            | (2) "\<exists>k lholed. Lfilled k lholed [$Return] es"
@@ -3758,7 +3755,7 @@ proof -
         using 7(7) Lfilled.intros(2)[OF 7(8) _ lholed_def(1), of _ n e0s "[]"]
         by fastforce
       thus ?thesis
-        print_statement lholed_def
+        print_statement 7
         using 7(12)[OF k1_def] lholed_def(2)
         by simp
     next
@@ -3781,7 +3778,7 @@ proof -
         using progress_L0 7(7,8)
         by fastforce
     next
-      case 7
+      case this_7: 7
       then obtain i k lholed where lholed_def:"(Lfilled k lholed [$Br i] es)" "i > k"
         using less_imp_add_positive
         by blast
@@ -3873,36 +3870,26 @@ qed
 
 lemma progress_e3:
   assumes "\<S>\<bullet>None \<tturnstile>_i vs;es : ts"
-  shows "\<not>(Lfilled k lholed [$ReturnCall j] es)"
+  shows "(Lfilled k lholed [$ReturnCall (j)] es) \<Longrightarrow> j < k"
 proof -
   {
-    assume "\<exists>k lholed j. (Lfilled k lholed [$ReturnCall j] es)"
-    then obtain k lholed j where local_assms:"(Lfilled k lholed [$ReturnCall j] es)"
-      by blast
+    assume "(\<exists>i k lholed. (Lfilled k lholed [$ReturnCall (i)] es) \<and> i \<ge> k)"
+    then obtain j k lholed where local_assms:"(Lfilled k lholed [$ReturnCall (k+j)] es)"
+      by (metis le_iff_add)
     obtain \<C> where c_def:"i < length (s_inst \<S>)"
                    "\<C> = ((s_inst \<S>)!i)\<lparr>local := (local ((s_inst \<S>)!i)) @ (map typeof vs), return := None\<rparr>"
                    "(\<S>\<bullet>\<C> \<turnstile> es : ([] _> ts))"
       using assms s_type_unfold
       by fastforce
-    have "\<exists>rs. return \<C> = Some rs"
-      using local_assms c_def(3)
-    proof (induction "[$ReturnCall j]" es arbitrary: \<C> ts rule: Lfilled.induct)
-      case (L0 vs lholed es')
-      thus ?case
-        using e_type_comp_conc2[OF L0(3)] unlift_b_e[of \<S> \<C> "[ReturnCall j]"] b_e_type_return_call
-        by fastforce
-    next
-      case (LN vs lholed tls es' l es'' k lfilledk)
-      thus ?case
-        using e_type_comp_conc2[OF LN(5)] e_type_label[of \<S> \<C> tls es' lfilledk]
-        by fastforce
-    qed
+    have "j < length (label \<C>)"
+      using progress_LN1[OF local_assms c_def(3)]
+      by -
     hence False
-      using c_def(2)
+      using store_local_label_empty(1)[OF c_def(1) assms(2)] c_def(2)
       by fastforce
   }
-  thus "\<And> k lholed j. \<not>(Lfilled k lholed [$ReturnCall j] es)"
-    by blast
+  thus "(\<And> j k lholed. (Lfilled k lholed [$ReturnCall (j)] es) \<Longrightarrow> j < k)"
+    by fastforce
 qed
 
 lemma progress_e4:

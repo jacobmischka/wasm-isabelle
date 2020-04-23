@@ -41,7 +41,7 @@ inductive b_e_typing :: "[t_context, b_e list, tf] \<Rightarrow> bool" ("_ \<tur
   \<comment> \<open>\<open>call_indirect\<close>\<close>
 | call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Call_indirect i] : (t1s @ [T_i32] _> t2s)"
   \<comment> \<open>\<open>return_call\<close>\<close>
-| return_call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = tf; (return \<C>) = Some ts\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall i] : tf"
+| return_call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = tf; (return \<C>) = Some ts\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall i] : (t1s @ ts _> t2s)"
   \<comment> \<open>\<open>return_call_indirect\<close>\<close>
 | return_call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None; (return \<C>) = Some t\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall_indirect i] : (t1s @ [T_i32] _> t2s)"
   \<comment> \<open>\<open>get_local\<close>\<close>
@@ -202,7 +202,7 @@ inductive reduce :: "[s, v list, e list, nat, s, v list, e list] \<Rightarrow> b
 | call_indirect_None:"\<lbrakk>(stab s i (nat_of_int c) = Some cl \<and> stypes s i j \<noteq> cl_type cl) \<or> stab s i (nat_of_int c) = None\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(Call_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
   \<comment> \<open>\<open>return_call\<close>\<close>
 (* FIXME *)
-| return_call: "\<lbrakk>const_list vs'; length vs' = n; Lfilled j lholed (vs' @ [$ReturnCall j']) es\<rbrakk>  \<Longrightarrow> \<lparr>s;vs;[Local n i' vls es]\<rparr> \<leadsto>_i \<lparr>s;vs;[Callcl (sfunc s i j')]\<rparr>"
+| return_call: "\<lbrakk>const_list vs'; length vs' = n; Lfilled j lholed (vs' @ [$ReturnCall j']) es\<rbrakk>  \<Longrightarrow> \<lparr>s;vs;[Local n i' vls es]\<rparr> \<leadsto>_i \<lparr>s;vs;vs' @ [Callcl (sfunc s i j')]\<rparr>"
   \<comment> \<open>\<open>call_indirect\<close>\<close>
 | return_call_indirect_Some:"\<lbrakk>stab s i (nat_of_int c) = Some cl; stypes s i j = tf; cl_type cl = tf\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(ReturnCall_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[$(ReturnCall (nat_of_int c))]\<rparr>"
 | return_call_indirect_None:"\<lbrakk>(stab s i (nat_of_int c) = Some cl \<and> stypes s i j \<noteq> cl_type cl) \<or> stab s i (nat_of_int c) = None\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(ReturnCall_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
