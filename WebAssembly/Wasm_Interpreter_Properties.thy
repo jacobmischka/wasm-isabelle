@@ -132,6 +132,10 @@ next
   thus ?case
     by (cases vcs' rule:rev_cases) auto
 next
+  case (tail_callcl_host_Some cl t1s t2s f ves vcs n m s hs s' vcs' vs i)
+  thus ?case
+    by (cases vcs' rule:rev_cases) auto
+next
   case (label s vs es i s' vs' es' k lholed les les')
   thus ?case
     using lfilled_eq
@@ -201,6 +205,30 @@ next
 next
   case (callcl_host_None cl t1s t2s f ves vcs n m s vs i)
   have "\<not>(is_const (Callcl cl))"
+    unfolding is_const_def
+    by simp
+  thus ?case
+    using not_const_vs_to_es_list
+    by (metis append.right_neutral)
+next
+  case (tail_callcl_native cl i' j ts es s t1s t2s ves vcs n k m zs vs i)
+  have "\<not>(is_const (TailCallcl cl))"
+    unfolding is_const_def
+    by simp
+  thus ?case
+    using not_const_vs_to_es_list
+    by (metis append.right_neutral)
+next
+  case (tail_callcl_host_Some cl t1s t2s f ves vcs n m s i s' vcs' vs)
+  have "\<not>(is_const (TailCallcl cl))"
+    unfolding is_const_def
+    by simp
+  thus ?case
+    using not_const_vs_to_es_list
+    by (metis append.right_neutral)
+next
+  case (tail_callcl_host_None cl t1s t2s f ves vcs n m s vs i)
+  have "\<not>(is_const (TailCallcl cl))"
     unfolding is_const_def
     by simp
   thus ?case
@@ -451,6 +479,33 @@ lemma run_one_step_basic_call_result:
 
 lemma run_one_step_basic_call_indirect_result:
   assumes "run_one_step d i (s,vs,ves,$Call_indirect x13) = (s', vs', res)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
+  using assms
+proof (cases ves)
+  case (Cons a list)
+  thus ?thesis
+    using assms
+  proof (cases a)
+    case (ConstInt32 x1)
+    thus ?thesis
+      using Cons assms
+    proof (cases "stab s i (nat_of_int x1)")
+      case (Some cl)
+      thus ?thesis
+        using Cons assms ConstInt32
+        by (cases cl; cases "stypes s i x13 = cl_type cl") auto
+    qed auto
+  qed auto
+qed auto
+
+lemma run_one_step_basic_return_call_result:
+  assumes "run_one_step d i (s,vs,ves,$ReturnCall x12) = (s', vs', res)"
+  shows "\<exists>r. res = RSNormal r"
+  using assms
+  by (cases ves) auto
+
+lemma run_one_step_basic_return_call_indirect_result:
+  assumes "run_one_step d i (s,vs,ves,$ReturnCall_indirect x13) = (s', vs', res)"
   shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
   using assms
 proof (cases ves)
@@ -844,6 +899,45 @@ proof -
   qed
 qed
 
+lemma run_one_step_tail_callcl_result:
+  assumes "run_one_step d i (s,vs,ves,TailCallcl cl) = (s', vs', res)"
+  shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>e. res = RSCrash e)"
+proof -
+  obtain t1s t2s where cl_type_is:"cl_type cl = (t1s _> t2s)"
+    using tf.exhaust
+    by blast
+  obtain ves' ves'' where split_n_is:"split_n ves (length t1s) = (ves', ves'')"
+    by fastforce
+  show ?thesis
+  proof (cases cl)
+    case (Func_native x11 x12 x13 x14)
+    thus ?thesis
+      using assms cl_type_is split_n_is
+      unfolding cl_type_def
+      by (cases "length t1s \<le> length ves") auto
+  next
+    case (Func_host x21 x22)
+    show ?thesis
+    proof (cases "host_apply_impl s (t1s _> t2s) x22 (rev ves')")
+      case None
+      thus ?thesis
+        using assms cl_type_is split_n_is Func_host
+        unfolding cl_type_def
+        by (cases "length t1s \<le> length ves")  auto
+    next
+      case (Some a)
+      thus ?thesis
+      proof (cases a)
+        case (Pair s' vcs')
+        thus ?thesis
+          using assms cl_type_is split_n_is Func_host Some
+          unfolding cl_type_def
+          by (cases "length t1s \<le> length ves"; cases "list_all2 types_agree t2s vcs'")  auto
+      qed
+    qed
+  qed
+qed
+
 lemma run_one_step_label_result:
   assumes "run_one_step d i (s,vs,ves,Label x41 x42 x43) = (s', vs', res)"
   shows "(\<exists>r. res = RSNormal r) \<or> (\<exists>r rvs. res = RSBreak r rvs) \<or> (\<exists>rvs. res = RSReturn rvs) \<or> (\<exists>e. res = RSCrash e)"
@@ -954,6 +1048,16 @@ proof (cases e)
     thus ?thesis
       using run_one_step_basic_call_indirect_result assms Basic
       by fastforce
+ next
+    case (ReturnCall x12)
+    thus ?thesis
+      using run_one_step_basic_return_call_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall_indirect x13)
+    thus ?thesis
+      using run_one_step_basic_return_call_indirect_result assms Basic
+      by fastforce
   next
     case (Get_local x14)
     thus ?thesis
@@ -1061,6 +1165,11 @@ next
     using assms run_one_step_callcl_result
     by fastforce
 next
+  case (TailCallcl x3)
+  thus ?thesis
+    using assms run_one_step_tail_callcl_result
+    by fastforce
+next
   case (Label x41 x42 x43)
   thus ?thesis
     by auto
@@ -1141,6 +1250,16 @@ proof (cases e)
     case (Call_indirect x13)
     thus ?thesis
       using run_one_step_basic_call_indirect_result assms Basic
+      by fastforce
+next
+    case (ReturnCall x12)
+    thus ?thesis
+      using run_one_step_basic_return_call_result assms Basic
+      by fastforce
+  next
+    case (ReturnCall_indirect x13)
+    thus ?thesis
+      using run_one_step_basic_return_call_indirect_result assms Basic
       by fastforce
   next
     case (Get_local x14)
@@ -1247,6 +1366,11 @@ next
   case (Callcl x3)
   thus ?thesis
     using assms run_one_step_callcl_result
+    by fastforce
+next
+  case (TailCallcl x3)
+  thus ?thesis
+    using assms run_one_step_tail_callcl_result
     by fastforce
 next
   case (Label x41 x42 x43)
@@ -1901,6 +2025,53 @@ proof -
       qed auto
     qed auto
   next
+    case (ReturnCall x12)
+    thus ?thesis
+      using assms progress_L0_left[OF reduce.intros(5)]
+            is_const_list_vs_to_es_list[of "rev ves"]
+      by auto
+  next
+    case (ReturnCall_indirect x13)
+    thus ?thesis
+      using assms
+    proof (cases ves)
+      case (Cons a list)
+      thus ?thesis
+        using assms ReturnCall_indirect
+      proof (cases a)
+        case (ConstInt32 c)
+        thus ?thesis
+        proof (cases "stab s i (nat_of_int c)")
+          case None
+          thus ?thesis
+            using assms ReturnCall_indirect Cons ConstInt32
+                  progress_L0_left[OF reduce.intros(7)]
+                  is_const_list_vs_to_es_list[of "rev list"]
+            by auto
+        next
+          case (Some cl)
+          thus ?thesis
+          proof (cases "stypes s i x13 = cl_type cl")
+            case True
+            hence "\<lparr>s;vs;(vs_to_es list) @ [$C ConstInt32 c, $ReturnCall_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list) @ [TailCallcl cl]\<rparr>"
+              using progress_L0_left[OF reduce.intros(6)] True Some is_const_list_vs_to_es_list[of "rev list"]
+              by fastforce
+            thus ?thesis
+              using assms ReturnCall_indirect Cons ConstInt32 Some True
+              by auto
+          next
+            case False
+            hence "\<lparr>s;vs;(vs_to_es list)@[$C ConstInt32 c, $ReturnCall_indirect x13]\<rparr> \<leadsto>_ i \<lparr>s;vs;(vs_to_es list)@[Trap]\<rparr>"
+              using progress_L0_left[OF reduce.intros(7)] False Some is_const_list_vs_to_es_list[of "rev list"]
+              by fastforce
+            thus ?thesis
+              using assms ReturnCall_indirect Cons ConstInt32 Some False
+              by auto
+          qed
+        qed
+      qed auto
+    qed auto
+  next
     case (Get_local j)
     thus ?thesis
       using assms
@@ -1911,7 +2082,7 @@ proof -
         by fastforce
       thus ?thesis
         using assms Get_local True
-              progress_L0_left[OF reduce.intros(8)]
+              progress_L0_left[OF reduce.intros(14)]
               is_const_list_vs_to_es_list[of "rev ves"]
         by auto
     qed auto
@@ -1930,7 +2101,7 @@ proof -
           by fastforce
         thus ?thesis
           using assms Set_local True Cons
-                progress_L0_left[OF reduce.intros(9)]
+                progress_L0_left[OF reduce.intros(15)]
                 is_const_list_vs_to_es_list[of "rev list"]
           by auto
       qed auto
@@ -1951,7 +2122,7 @@ proof -
     case (Get_global x17)
     thus ?thesis
       using assms
-            progress_L0_left[OF reduce.intros(10)]
+            progress_L0_left[OF reduce.intros(16)]
             is_const_list_vs_to_es_list[of "rev ves"]
       by (auto simp add: is_const_def)
   next
@@ -1962,7 +2133,7 @@ proof -
       case (Cons a list)
       thus ?thesis
         using assms Set_global
-              progress_L0_left[OF reduce.intros(11)]
+              progress_L0_left[OF reduce.intros(17)]
               is_const_list_vs_to_es_list[of "rev list"]
         by (auto simp add: is_const_def)
     qed auto
@@ -1980,8 +2151,8 @@ proof -
         case (Some a)
         thus ?thesis
           using Load assms None Cons ConstInt32
-              progress_L0_left[OF reduce.intros(12)]
-              progress_L0_left[OF reduce.intros(13)]
+              progress_L0_left[OF reduce.intros(18)]
+              progress_L0_left[OF reduce.intros(19)]
               is_const_list_vs_to_es_list[of "rev list"]
           by (cases "load (s.mem s ! a) (nat_of_int x1) x194 (t_length x191)" )
              (auto simp add: is_const_def)
@@ -1997,8 +2168,8 @@ proof -
           case (Some a)
           thus ?thesis
             using Load assms outer_some Cons ConstInt32 Pair
-                  progress_L0_left[OF reduce.intros(14)]
-                  progress_L0_left[OF reduce.intros(15)]
+                  progress_L0_left[OF reduce.intros(20)]
+                  progress_L0_left[OF reduce.intros(21)]
                   is_const_list_vs_to_es_list[of "rev list"]
             by (cases "load_packed sx (s.mem s ! a) (nat_of_int x1) x194 (tp_length tp) (t_length x191)")
                (auto simp add: is_const_def)
@@ -2028,8 +2199,8 @@ proof -
               case None
               thus ?thesis
                 using Store outer_Cons Cons assms True outer_Some ConstInt32
-                      progress_L0_left[OF reduce.intros(16)]
-                      progress_L0_left[OF reduce.intros(17)]
+                      progress_L0_left[OF reduce.intros(22)]
+                      progress_L0_left[OF reduce.intros(23)]
                       is_const_list_vs_to_es_list[of "rev list'"]
                 by (cases "store (s.mem s ! j) (nat_of_int x1) off (bits a) (t_length t)")
                    auto
@@ -2037,8 +2208,8 @@ proof -
               case (Some the_tp)
               thus ?thesis
                 using Store outer_Cons Cons assms True outer_Some ConstInt32
-                      progress_L0_left[OF reduce.intros(18)]
-                      progress_L0_left[OF reduce.intros(19)]
+                      progress_L0_left[OF reduce.intros(24)]
+                      progress_L0_left[OF reduce.intros(25)]
                       is_const_list_vs_to_es_list[of "rev list'"]
                 by (cases "store_packed (s.mem s ! j) (nat_of_int x1) off (bits a) (tp_length the_tp)")
                    auto
@@ -2055,7 +2226,7 @@ proof -
       case (Some a)
       thus ?thesis
         using assms Current_memory 
-              progress_L0_left[OF reduce.intros(20)]
+              progress_L0_left[OF reduce.intros(26)]
               is_const_list_vs_to_es_list[of "rev ves"]
         by (auto simp add: is_const_def)
     qed auto
@@ -2072,8 +2243,8 @@ proof -
         case (Some j)
         thus ?thesis
           using assms Grow_memory Cons ConstInt32
-                             progress_L0_left[OF reduce.intros(21)]
-                             progress_L0_left[OF reduce.intros(22)]
+                             progress_L0_left[OF reduce.intros(27)]
+                             progress_L0_left[OF reduce.intros(28)]
               is_const_list_vs_to_es_list[of "rev list"] 
           by (cases "mem_grow_impl (s.mem s ! j) (nat_of_int x1)") (auto simp add: mem_grow_impl_correct is_const_def)
       qed auto
@@ -2265,7 +2436,7 @@ proof -
             by auto
           moreover
           have "\<lparr>s;vs;(vs_to_es ves')@[Callcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;([Local (length t2s) i' (rev ves' @ (n_zeros fts)) [$Block ([] _> t2s) fes]])\<rparr>"
-            using reduce.intros(5) local_defs(1,2) Func_native ves'_length
+            using reduce.intros(8) local_defs(1,2) Func_native ves'_length
             unfolding cl_type_def
             by fastforce
           ultimately
@@ -2286,7 +2457,7 @@ proof -
               by auto
             thus ?thesis
               using is_const_list[of _ "(rev ves'')"]
-                    reduce.intros(7)[OF _ _ ves'_length local_defs(2)]
+                    reduce.intros(10)[OF _ _ ves'_length local_defs(2)]
                     split_n_conv_app[OF true_defs]
                     progress_L0_left Callcl Func_host local_defs(1)
               unfolding cl_type_def
@@ -2308,7 +2479,7 @@ proof -
                   unfolding cl_type_def
                   by auto
                 thus ?thesis
-                  using progress_L0_left reduce.intros(6)[OF _ _ ves'_length local_defs(2)] Pair
+                  using progress_L0_left reduce.intros(9)[OF _ _ ves'_length local_defs(2)] Pair
                         Callcl Func_host local_defs(1) True is_const_list[of _ "(rev ves'')"]
                         split_n_conv_app[OF true_defs] host_apply_impl_correct[OF Some]
                   unfolding cl_type_def
@@ -2321,6 +2492,95 @@ proof -
         case False
         thus ?thesis
           using 2(3) Callcl local_defs
+          unfolding cl_type_def
+          by (cases cl) auto
+      qed
+ next
+      case (TailCallcl cl)
+      obtain t1s t2s where "cl_type cl = (t1s _> t2s)"
+        using tf.exhaust[of _ thesis]
+        by fastforce
+      moreover
+      obtain n where "length t1s = n"
+        by blast
+      moreover
+      obtain m where "length t2s = m"
+        by blast
+      moreover
+      note local_defs = calculation
+      show ?thesis
+      proof (cases "length ves \<ge> n")
+        case outer_True:True
+        obtain ves' ves'' where true_defs:"split_n ves n = (ves', ves'')"
+          by (metis surj_pair)
+        have ves'_length:"length (rev ves') = n"
+          using split_n_length[OF true_defs outer_True] inj_basic_econst length_rev map_injective
+          by blast
+        show ?thesis
+        proof (cases cl)
+          case (Func_native i' tf fts fes)
+          hence "s' = s" "vs' = vs" "es' = (vs_to_es ves'' @ [Local (length t2s) i' (rev ves' @ (n_zeros fts)) [$Block ([] _> t2s) fes]])"
+            using 2(3) TailCallcl local_defs outer_True true_defs
+            unfolding cl_type_def
+            by auto
+          moreover
+          have "\<lparr>s;vs;(vs_to_es ves')@[TailCallcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;([Local (length t2s) i' (rev ves' @ (n_zeros fts)) [$Block ([] _> t2s) fes]])\<rparr>"
+            using reduce.intros(11) local_defs(1,2) Func_native ves'_length
+            unfolding cl_type_def
+            by fastforce
+          ultimately
+          show ?thesis
+            using TailCallcl progress_L0_left is_const_list[of _ "(rev ves'')"]
+            unfolding split_n_conv_app[OF true_defs(1)]
+            by auto
+        next
+          case (Func_host x21 x22)
+          thus ?thesis
+          proof (cases "host_apply_impl s (t1s _> t2s) x22 (rev ves')")
+            case None
+            hence "s = s'"
+                  "vs = vs'"
+                  "es' = vs_to_es ves'' @ [Trap] "
+              using 2(3) TailCallcl local_defs outer_True true_defs Func_host
+              unfolding cl_type_def
+              by auto
+            thus ?thesis
+              using is_const_list[of _ "(rev ves'')"]
+                    reduce.intros(13)[OF _ _ ves'_length local_defs(2)]
+                    split_n_conv_app[OF true_defs]
+                    progress_L0_left TailCallcl Func_host local_defs(1)
+              unfolding cl_type_def
+              by fastforce
+          next
+            case (Some a)
+            show ?thesis
+            proof (cases a)
+            case (Pair rs rves)
+              thus ?thesis
+                using 2(3) TailCallcl local_defs outer_True true_defs Func_host Some
+                unfolding cl_type_def
+              proof (cases "list_all2 types_agree t2s rves")
+                case True
+                hence "rs = s'"
+                      "vs = vs'"
+                      "es' = vs_to_es ves'' @ ($$* rves) "
+                  using 2(3) TailCallcl local_defs outer_True true_defs Func_host Pair Some      
+                  unfolding cl_type_def
+                  by auto
+                thus ?thesis
+                  using progress_L0_left reduce.intros(12)[OF _ _ ves'_length local_defs(2)] Pair
+                        TailCallcl Func_host local_defs(1) True is_const_list[of _ "(rev ves'')"]
+                        split_n_conv_app[OF true_defs] host_apply_impl_correct[OF Some]
+                  unfolding cl_type_def
+                  by fastforce
+              qed auto
+            qed
+          qed
+        qed
+      next
+        case False
+        thus ?thesis
+          using 2(3) TailCallcl local_defs
           unfolding cl_type_def
           by (cases cl) auto
       qed
@@ -2424,7 +2684,7 @@ proof -
             ultimately
             show ?thesis
               using Label 2(3) outer_outer_false False run_step_is
-                    reduce.intros(23)[OF inner_reduce]
+                    reduce.intros(29)[OF inner_reduce]
               by fastforce
           qed
         qed
@@ -2517,7 +2777,7 @@ proof -
                 by auto
               thus ?thesis
                 using Local 2(3) Local outer_outer_false False run_step_is Suc
-                      reduce.intros(24)[OF inner_reduce] RSNormal
+                      reduce.intros(30)[OF inner_reduce] RSNormal
                       progress_L0_left is_const_list_vs_to_es_list[of "rev ves"]
                 by (auto simp del: run_step.simps)
             qed

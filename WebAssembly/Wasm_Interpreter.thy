@@ -366,6 +366,22 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                         (s, vs, RSNormal ((vs_to_es ves')@[Trap]))
                 | _ \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves')@[Trap])))
            | _ \<Rightarrow> (s, vs, crash_error))
+      \<comment> \<open>\<open>RETURN_CALL\<close>\<close>
+      | $ReturnCall j \<Rightarrow>
+          (s, vs, RSNormal ((vs_to_es ves) @ [TailCallcl (sfunc s i j)]))
+      \<comment> \<open>\<open>RETURN_CALL_INDIRECT\<close>\<close>
+      | $ReturnCall_indirect j \<Rightarrow>
+          (case ves of
+             (ConstInt32 c)#ves' \<Rightarrow>
+               (case (stab s i (nat_of_int c)) of
+                  Some cl \<Rightarrow>
+                    if (stypes s i j = cl_type cl)
+                      then
+                        (s, vs, RSNormal ((vs_to_es ves') @ [TailCallcl cl]))
+                      else
+                        (s, vs, RSNormal ((vs_to_es ves')@[Trap]))
+                | _ \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves')@[Trap])))
+           | _ \<Rightarrow> (s, vs, crash_error))
       \<comment> \<open>\<open>RETURN\<close>\<close>
       | $Return \<Rightarrow>
           (s, vs, RSReturn ves)
@@ -470,6 +486,35 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
     \<comment> \<open>\<open>E\<close>\<close>
       \<comment> \<open>\<open>CALLCL\<close>\<close>
       | Callcl cl \<Rightarrow>
+          (case cl of
+             Func_native i' (t1s _> t2s) ts es \<Rightarrow>
+               let n = length t1s in
+               let m = length t2s in
+               if length ves \<ge> n
+                 then
+                   let (ves', ves'') = split_n ves n in
+                   let zs = n_zeros ts in
+                     (s, vs, RSNormal ((vs_to_es ves'') @ ([Local m i' ((rev ves')@zs) [$(Block ([] _> t2s) es)]])))
+                 else
+                   (s, vs, crash_error)
+           | Func_host (t1s _> t2s) f \<Rightarrow>
+               let n = length t1s in
+               let m = length t2s in
+               if length ves \<ge> n
+                 then
+                   let (ves', ves'') = split_n ves n in
+                   case host_apply_impl s (t1s _> t2s) f (rev ves') of
+                     Some (s',rves) \<Rightarrow> 
+                       if list_all2 types_agree t2s rves
+                         then
+                           (s', vs, RSNormal ((vs_to_es ves'') @ ($$* rves)))
+                         else
+                           (s', vs, crash_error)
+                   | None \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves'')@[Trap]))
+                 else
+                   (s, vs, crash_error))
+      \<comment> \<open>\<open>FIXME: CALLCL\<close>\<close>
+      | TailCallcl cl \<Rightarrow>
           (case cl of
              Func_native i' (t1s _> t2s) ts es \<Rightarrow>
                let n = length t1s in
