@@ -41,9 +41,9 @@ inductive b_e_typing :: "[t_context, b_e list, tf] \<Rightarrow> bool" ("_ \<tur
   \<comment> \<open>\<open>call_indirect\<close>\<close>
 | call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Call_indirect i] : (t1s @ [T_i32] _> t2s)"
   \<comment> \<open>\<open>return_call\<close>\<close>
-| return_call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = tf\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall i] : tf"
+| return_call:"\<lbrakk>i < length(func_t \<C>); (func_t \<C>)!i = (t1s _> t2s); (return \<C>) = Some t2s\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall i] : (t3s @ t1s _> t4s)"
   \<comment> \<open>\<open>return_call_indirect\<close>\<close>
-| return_call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall_indirect i] : (t1s @ [T_i32] _> t2s)"
+| return_call_indirect:"\<lbrakk>i < length(types_t \<C>); (types_t \<C>)!i = (t1s _> t2s); (table \<C>) \<noteq> None; (return \<C>) = Some t2s\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [ReturnCall_indirect i] : (t3s @ t1s @ [T_i32] _> t4s)"
   \<comment> \<open>\<open>get_local\<close>\<close>
 | get_local:"\<lbrakk>i < length(local \<C>); (local \<C>)!i = t\<rbrakk> \<Longrightarrow> \<C> \<turnstile> [Get_local i] : ([] _> [t])"
   \<comment> \<open>\<open>set_local\<close>\<close>
@@ -207,14 +207,11 @@ inductive reduce :: "[s, v list, e list, nat, s, v list, e list] \<Rightarrow> b
   \<comment> \<open>\<open>return_call_indirect\<close>\<close>
 | return_call_indirect_Some:"\<lbrakk>stab s i (nat_of_int c) = Some cl; stypes s i j = tf; cl_type cl = tf\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(ReturnCall_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[TailCallcl cl]\<rparr>"
 | return_call_indirect_None:"\<lbrakk>(stab s i (nat_of_int c) = Some cl \<and> stypes s i j \<noteq> cl_type cl) \<or> stab s i (nat_of_int c) = None\<rbrakk> \<Longrightarrow> \<lparr>s;vs;[$C (ConstInt32 c), $(ReturnCall_indirect j)]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
-  \<comment> \<open>\<open>return_call\<close>\<close>
+  \<comment> \<open>\<open>call\<close>\<close>
 | callcl_native:"\<lbrakk>cl = Func_native j (t1s _> t2s) ts es; ves = ($$* vcs); length vcs = n; length ts = k; length t1s = n; length t2s = m; (n_zeros ts = zs) \<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [Callcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Local m j (vcs@zs) [$(Block ([] _> t2s) es)]]\<rparr>"
+| tail_callcl_native:"\<lbrakk>cl = Func_native j (t1s _> t2s) ts es; ves = ($$* vcs); length vcs \<ge> m; length ts = k; length t1s = n; length t2s = m; Lfilled j lholed (ves @ [TailCallcl cl]) ves\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [TailCallcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Callcl cl]\<rparr>"
 | callcl_host_Some:"\<lbrakk>cl = Func_host (t1s _> t2s) f; ves = ($$* vcs); length vcs = n; length t1s = n; length t2s = m; host_apply s (t1s _> t2s) f vcs hs = Some (s', vcs')\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [Callcl cl]\<rparr> \<leadsto>_i \<lparr>s';vs;($$* vcs')\<rparr>"
 | callcl_host_None:"\<lbrakk>cl = Func_host (t1s _> t2s) f; ves = ($$* vcs); length vcs = n; length t1s = n; length t2s = m\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [Callcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
-  \<comment> \<open>\<open>call\<close>\<close>
-| tail_callcl_native:"\<lbrakk>cl = Func_native j (t1s _> t2s) ts es; ves = ($$* vcs); length vcs = n; length ts = k; length t1s = n; length t2s = m; (n_zeros ts = zs) \<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [TailCallcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Local m j (vcs@zs) [$(Block ([] _> t2s) es)]]\<rparr>"
-| tail_callcl_host_Some:"\<lbrakk>cl = Func_host (t1s _> t2s) f; ves = ($$* vcs); length vcs = n; length t1s = n; length t2s = m; host_apply s (t1s _> t2s) f vcs hs = Some (s', vcs')\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [TailCallcl cl]\<rparr> \<leadsto>_i \<lparr>s';vs;($$* vcs')\<rparr>"
-| tail_callcl_host_None:"\<lbrakk>cl = Func_host (t1s _> t2s) f; ves = ($$* vcs); length vcs = n; length t1s = n; length t2s = m\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [TailCallcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
   \<comment> \<open>\<open>get_local\<close>\<close>
 | get_local:"\<lbrakk>length vi = j\<rbrakk> \<Longrightarrow> \<lparr>s;(vi @ [v] @ vs);[$(Get_local j)]\<rparr> \<leadsto>_i \<lparr>s;(vi @ [v] @ vs);[$(C v)]\<rparr>"
   \<comment> \<open>\<open>set_local\<close>\<close>

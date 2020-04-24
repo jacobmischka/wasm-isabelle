@@ -58,31 +58,6 @@ proof (induction arbitrary: \<C> arb_label arb_return ts ts' rule: reduce.induct
           host_apply_preserve_store[OF _ callcl_host_Some(6)] callcl_host_Some(7)
     by fastforce
 next
-  case (tail_callcl_host_Some cl t1s t2s f ves vcs n m s hs s' vcs' vs i)
-  obtain ts'' where ts''_def:"\<S>\<bullet>\<C> \<turnstile> ves : (ts _> ts'')" "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (ts'' _> ts')"
-  using tail_callcl_host_Some(8) e_type_comp
-  by fastforce
-  have ves_c:"const_list ves"
-    using is_const_list[OF tail_callcl_host_Some(2)]
-    by simp
-  then obtain tvs where tvs_def:"ts'' = ts @ tvs"
-                                "length t1s = length tvs"
-                                "\<S>\<bullet>\<C> \<turnstile> ves : ([] _> tvs)"
-    using ts''_def(1) e_type_const_list[of ves \<S> \<C> ts ts''] tail_callcl_host_Some
-    by fastforce
-  hence "ts'' = ts @ t1s"
-        "ts' = ts @ t2s"
-    using e_type_tail_callcl_host[OF ts''_def(2) tail_callcl_host_Some(1)]
-    by auto
-  moreover
-  hence "list_all2 types_agree t1s vcs"
-    using e_typing_imp_list_types_agree[where ?ts' = "[]"] tail_callcl_host_Some(2) tvs_def(1,3)
-    by fastforce
-  thus ?case
-    using store_extension_imp_store_typing
-          host_apply_preserve_store[OF _ tail_callcl_host_Some(6)] tail_callcl_host_Some(7)
-    by fastforce
-next
   case (set_global s i j v s' vs)
   obtain insts fs clss bss gs where "s = \<lparr>inst = insts, funcs = fs, tab = clss, mem = bss, globs = gs\<rparr>"
     using s.cases
@@ -831,8 +806,8 @@ proof -
     by fastforce
   obtain ts''a where ts''a_def:"j < length (types_t \<C>)"
                                "ts'' = ts''a @ t1s @ [T_i32]"
-                               "ts' = ts''a @ t2s"
                                "types_t \<C> ! j = (t1s _> t2s)"
+                               "(return \<C>) = Some t2s"
     using b_e_type_return_call_indirect[OF ts''_def(2), of j] tf_def assms(3,7) stypes_eq
     unfolding stypes_def
     by fastforce
@@ -1803,8 +1778,8 @@ next
   case (return_call s vs j i)
   obtain  ts'' tf1 tf2 where l_func_t: "length (func_t \<C>) > j"
                                        "ts = ts''@tf1"
-                                       "ts' = ts''@tf2"
                                        "((func_t \<C>)!j) = (tf1 _> tf2)"
+                                       "(return \<C>) = Some tf2"
     using b_e_type_return_call[of \<C> "ReturnCall j" ts ts' j] return_call(5)
           unlift_b_e[of _ _ "[ReturnCall j]" "(ts _> ts')"]
     by fastforce
@@ -1853,16 +1828,6 @@ next
   thus ?case
     using types_preserved_tail_callcl_native
     by fastforce
-next
-  case (tail_callcl_host_Some cl t1s t2s f ves vcs n m s hs s' vcs' vs i)
-  thus ?case
-    using types_preserved_tail_callcl_host_some
-      by fastforce
-next
-  case (tail_callcl_host_None cl t1s t2s f ves vcs n m s hs vs i)
-  thus ?case
-    using e_typing_s_typing.intros(4)
-    by blast
 next
   case (get_local vi j s v vs i)
   hence "i < length (s_inst \<S>)"
@@ -2171,7 +2136,7 @@ proof -
     unfolding const_list_def
     by fastforce
   thus ?thesis
-    using reduce.intros(29) assms(1)
+    using reduce.intros(27) assms(1)
     by blast
 qed
 
@@ -2917,6 +2882,7 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
+print_statement call_indirect
     using e_type_const_list_cons[OF call_indirect(7), of \<S> \<C> t1s "[T_i32]"]
           e_type_const_list[of _ \<S> \<C> t1s "t1s @ [T_i32]"]
           call_indirect(4)
@@ -2952,18 +2918,18 @@ next
 next
   case (return_call j \<C>)
   show ?case
-    using progress_L0[OF reduce.intros(5) return_call(6)]
+    using progress_L0[OF reduce.intros(5) return_call(7)]
     by fastforce
 next
-  case (return_call_indirect j \<C> t1s t2s)
+  case (return_call_indirect j \<C> t1s t2s t3s)
   obtain cs1 cs2 where cs_def:"\<S>\<bullet>\<C> \<turnstile> cs1 : ([]_> t1s)"
                               "\<S>\<bullet>\<C> \<turnstile> cs2 : ([] _> [T_i32])"
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-    using e_type_const_list_cons[OF return_call_indirect(7), of \<S> \<C> t1s "[T_i32]"]
-          e_type_const_list[of _ \<S> \<C> t1s "t1s @ [T_i32]"]
-          return_call_indirect(4)
+    using e_type_const_list_cons[OF return_call_indirect(8), of \<S> \<C> t1s "[T_i32]"]
+          e_type_const_list[of _ \<S> \<C> t1s "t3s @ t1s @ [T_i32]"]
+          return_call_indirect(5)
     by fastforce
   obtain c where c_def:"cs2 = [$C ConstInt32 c]"
     using cs_def(2,4) const_of_i32
@@ -3007,7 +2973,7 @@ next
     using v_def id_take_nth_drop j_def
     by fastforce
   thus ?case
-    using progress_L0[OF reduce.intros(14)[OF vj_len, of s v vj'] get_local(6)]
+    using progress_L0[OF reduce.intros(12)[OF vj_len, of s v vj'] get_local(6)]
     by fastforce
 next
   case (set_local j \<C> t)
@@ -3026,7 +2992,7 @@ next
     using v_def id_take_nth_drop j_def
     by fastforce
   thus ?case
-    using reduce.intros(15)[OF vj_len, of s v vj' v' i] cs_def
+    using reduce.intros(13)[OF vj_len, of s v vj' v' i] cs_def
     by fastforce
 next
   case (tee_local i \<C> t)
@@ -3040,7 +3006,7 @@ next
 next
   case (get_global j \<C> t)
   thus ?case
-    using reduce.intros(16)[of s vs j i] progress_L0
+    using reduce.intros(14)[of s vs j i] progress_L0
     by fastforce
 next
   case (set_global j \<C> t)
@@ -3048,7 +3014,7 @@ next
     using const_of_const_list set_global(4,7) e_type_const_list
     by fastforce
   thus ?case
-    using reduce.intros(17)[of s i j v _ vs]
+    using reduce.intros(15)[of s i j v _ vs]
     by fastforce
 next
   case (load \<C> n a tp_sx t off)
@@ -3068,12 +3034,12 @@ next
     proof (cases "load ((mem s)!j) (nat_of_int c) off (t_length t)")
       case None
       show ?thesis
-        using reduce.intros(19)[OF mem_some _ None, of vs] tp_none load(2)
+        using reduce.intros(17)[OF mem_some _ None, of vs] tp_none load(2)
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(18)[OF mem_some _ Some, of vs] tp_none load(2)
+        using reduce.intros(16)[OF mem_some _ Some, of vs] tp_none load(2)
         by fastforce
     qed
   next
@@ -3085,12 +3051,12 @@ next
     proof (cases "load_packed sx ((mem s)!j) (nat_of_int c) off (tp_length tp) (t_length t)")
       case None
       show ?thesis
-        using reduce.intros(21)[OF mem_some _ None, of vs] tp_some load(2)
+        using reduce.intros(19)[OF mem_some _ None, of vs] tp_some load(2)
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(20)[OF mem_some _ Some, of vs] tp_some load(2)
+        using reduce.intros(18)[OF mem_some _ Some, of vs] tp_some load(2)
         by fastforce
     qed
   qed
@@ -3124,13 +3090,13 @@ next
     proof (cases "store (s.mem s ! j) (nat_of_int c) off (bits v) (t_length t)")
       case None
       show ?thesis
-        using reduce.intros(23)[OF _ mem_some _ None, of vs] t_def tp_none store(2)
+        using reduce.intros(21)[OF _ mem_some _ None, of vs] t_def tp_none store(2)
         unfolding types_agree_def
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(22)[OF _ mem_some _ Some, of vs] t_def tp_none store(2)
+        using reduce.intros(20)[OF _ mem_some _ Some, of vs] t_def tp_none store(2)
         unfolding types_agree_def
         by fastforce
     qed
@@ -3141,13 +3107,13 @@ next
     proof (cases "store_packed (s.mem s ! j) (nat_of_int c) off (bits v) (tp_length a)")
       case None
       show ?thesis
-        using reduce.intros(25)[OF _ mem_some _ None, of t vs] t_def tp_some store(2)
+        using reduce.intros(23)[OF _ mem_some _ None, of t vs] t_def tp_some store(2)
         unfolding types_agree_def
         by fastforce
     next
       case (Some a)
       show ?thesis
-        using reduce.intros(24)[OF _ mem_some _ Some, of t vs] t_def tp_some store(2)
+        using reduce.intros(22)[OF _ mem_some _ Some, of t vs] t_def tp_some store(2)
         unfolding types_agree_def
         by fastforce
     qed
@@ -3162,7 +3128,7 @@ next
     unfolding smem_ind_def
     by fastforce
   thus ?case
-    using progress_L0[OF reduce.intros(26)[OF mem_some] current_memory(5), of _ _ vs "[]"]
+    using progress_L0[OF reduce.intros(24)[OF mem_some] current_memory(5), of _ _ vs "[]"]
     by fastforce
 next
   case (grow_memory \<C> n)
@@ -3174,7 +3140,7 @@ next
     unfolding smem_ind_def
     by fastforce
   show ?case
-    using reduce.intros(28)[OF mem_some, of _] c_def
+    using reduce.intros(26)[OF mem_some, of _] c_def
     by fastforce
 next
   case (empty \<C>)
@@ -3464,7 +3430,7 @@ proof -
         using 5(3)[OF 1(1) _ 1(3,4) 5(12)] 1(2)
         by fastforce
       show ?thesis
-        using reduce.intros(30)[OF temp1, of vs] progress_L0[where ?cs = cs, OF _ 5(6)] 5(5)
+        using reduce.intros(28)[OF temp1, of vs] progress_L0[where ?cs = cs, OF _ 5(6)] 5(5)
         by fastforce
     next
       case 2
@@ -3569,7 +3535,7 @@ proof -
       proof (cases "host_apply s (t1s _> t2s) x22 vcs hs")
         case None
         thus ?thesis
-          using reduce.intros(10)[OF func_host_def] l vcs_def
+          using reduce.intros(11)[OF func_host_def] l vcs_def
           by fastforce
       next
         case (Some a)
@@ -3579,7 +3545,7 @@ proof -
           using e_typing_imp_list_types_agree vs_def(2,4) vcs_def
           by simp
         thus ?thesis
-          using reduce.intros(9)[OF func_host_def _ _ _ _ ha_def] l vcs_def
+          using reduce.intros(10)[OF func_host_def _ _ _ _ ha_def] l vcs_def
                 host_apply_respect_type[OF _ ha_def]
           by fastforce
       qed
@@ -3615,7 +3581,8 @@ proof -
         unfolding cl_type_def
         by simp
       have "\<exists>a a'. \<lparr>s;vs;vs2 @ [TailCallcl cl]\<rparr> \<leadsto>_ i \<lparr>s;vs;a\<rparr>"
-        using reduce.intros(11)[OF func_native_def] e_type_const_conv_vs[OF vs_def(5)] l
+        print_statement reduce.intros
+        using reduce.intros(9)[OF func_native_def] e_type_const_conv_vs[OF vs_def(5)] l
         unfolding n_zeros_def
         by fastforce
       thus ?thesis
@@ -3635,7 +3602,7 @@ proof -
       proof (cases "host_apply s (t1s _> t2s) x22 vcs hs")
         case None
         thus ?thesis
-          using reduce.intros(13)[OF func_host_def] l vcs_def
+          using reduce.intros(11)[OF func_host_def] l vcs_def
           by fastforce
       next
         case (Some a)
@@ -3645,7 +3612,7 @@ proof -
           using e_typing_imp_list_types_agree vs_def(2,4) vcs_def
           by simp
         thus ?thesis
-          using reduce.intros(12)[OF func_host_def _ _ _ _ ha_def] l vcs_def
+          using reduce.intros(10)[OF func_host_def _ _ _ _ ha_def] l vcs_def
                 host_apply_respect_type[OF _ ha_def]
           by fastforce
       qed
@@ -3694,7 +3661,7 @@ proof -
         unfolding const_list_def
         by fastforce
       show ?thesis
-        using reduce.intros(29)[OF _ temp5 temp6] 8(7) red_def
+        using reduce.intros(27)[OF _ temp5 temp6] 8(7) red_def
         by fastforce
     next
       case 2

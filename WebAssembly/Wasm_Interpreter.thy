@@ -513,7 +513,7 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                    | None \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves'')@[Trap]))
                  else
                    (s, vs, crash_error))
-      \<comment> \<open>\<open>FIXME: CALLCL\<close>\<close>
+      \<comment> \<open>\<open>FIXME: TAILCALLCL\<close>\<close>
       | TailCallcl cl \<Rightarrow>
           (case cl of
              Func_native i' (t1s _> t2s) ts es \<Rightarrow>
