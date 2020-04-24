@@ -159,6 +159,16 @@ foldl_Cons: "foldl f a (x # xs) = foldl f (f a x) xs"
                                             then (case ((types_t \<C>)!i) of
                                                     (tn _> tm) \<Rightarrow> type_update ts (to_ct_list (tn@[T_i32])) (Type tm))
                                             else Bot)"
+  (* return_call *)
+| "check_single \<C> (ReturnCall i) ts = (if i < length (func_t \<C>)
+                                    then (case ((func_t \<C>)!i) of
+                                            (tn _> tm) \<Rightarrow> type_update ts (to_ct_list tn) (Type tm))
+                                    else Bot)"
+  (* return_call_indirect *)
+| "check_single \<C> (ReturnCall_indirect i) ts = (if (table \<C>) \<noteq> None \<and> i < length (types_t \<C>)
+                                            then (case ((types_t \<C>)!i) of
+                                                    (tn _> tm) \<Rightarrow> type_update ts (to_ct_list (tn@[T_i32])) (Type tm))
+                                            else Bot)"
   (* get_local *)
 | "check_single \<C> (Get_local i) ts = (if i < length (local \<C>)
                                         then type_update ts [] (Type [(local \<C>)!i])
