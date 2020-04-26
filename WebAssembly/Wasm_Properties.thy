@@ -822,9 +822,18 @@ proof -
   hence "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : tf"
     using e_typing_s_typing.intros(7) assms(6,7) ts''a_def(1)
     by fastforce
+  hence ttailcallcl:"\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t1s _> t2s)"
+    using tf_def
+    by fastforce
+  then
+  obtain ts_c t1s' t2s' where ts_cdef:"(t1s = ts_c @ t1s')"
+                            "(t2s = ts_c @ t2s')"
+                            "cl_type cl = (t1s' _> t2s')"
+    using e_type_tail_callcl[OF ttailcallcl]
+    by fastforce
   ultimately
   show "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (ts _> ts')"
-    using tf_def e_typing_s_typing.intros(3)
+    using tf_def ts_cdef e_typing_s_typing.intros(3)
     by auto
 qed
 
@@ -939,32 +948,33 @@ qed
 
 lemma types_preserved_tail_callcl_native:
   assumes "\<S>\<bullet>\<C> \<turnstile> ves @ [TailCallcl cl] : (ts _> ts')"
-          "cl = Func_native i (t1s _> t2s) tfs es"
-          "ves = $$* vs"
-          "length vs = n"
+          "cl = Func_native i (t1s _> t2s) tfs bes"
+          "ves = $$* vcs"
+          "length vcs = n"
           "length tfs = k"
           "length t1s = n"
           "length t2s = m"
-          "n_zeros tfs = zs"
+          "Lfilled k lholed (ves @ [TailCallcl cl]) es"
           "store_typing s \<S>"
-  shows "\<S>\<bullet>\<C> \<turnstile> [Local m i (vs @ zs) [$Block ([] _> t2s) es]] : (ts _> ts')"
+  shows "\<S>\<bullet>\<C> \<turnstile> ves@[Callcl cl] : (ts _> ts')"
 proof -
   obtain ts'' where ts''_def:"\<S>\<bullet>\<C> \<turnstile> ves : (ts _> ts'')" "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (ts'' _> ts')"
-  using assms(1) e_type_comp
-  by fastforce
+    using assms(1) e_type_comp
+    by fastforce
   have ves_c:"const_list ves"
     using is_const_list[OF assms(3)]
     by simp
   then obtain tvs where tvs_def:"ts'' = ts @ tvs"
                                 "length t1s = length tvs"
                                 "\<S>\<bullet>\<C> \<turnstile> ves : ([] _> tvs)"
+    print_statement e_type_const_list
     using ts''_def(1) e_type_const_list[of ves \<S> \<C> ts ts''] assms
-    by fastforce    
+    by fastforce
   obtain ts_c \<C>' where ts_c_def:"(ts'' = ts_c @ t1s)"
                                 "(ts' = ts_c @ t2s)"
                                 "i < length (s_inst \<S>)"
                                 "\<C>' = ((s_inst \<S>)!i)"
-                                "(\<C>'\<lparr>local := (local \<C>') @ t1s @ tfs, label := ([t2s] @ (label \<C>')), return := Some t2s\<rparr>  \<turnstile> es : ([] _> t2s))"
+                                "(\<C>'\<lparr>local := (local \<C>') @ t1s @ tfs, label := ([t2s] @ (label \<C>')), return := Some t2s\<rparr>  \<turnstile> bes : ([] _> t2s))"
     using e_type_tail_callcl_native[OF ts''_def(2) assms(2)]
     by fastforce
   have "inst_typing \<S> (inst s ! i) (s_inst \<S> ! i)"
@@ -975,28 +985,16 @@ proof -
     by blast
   hence "\<C>''\<lparr>label := ([t2s] @ (label \<C>''))\<rparr>  = \<C>'\<lparr>local := (local \<C>') @ t1s @ tfs, label := ([t2s] @ (label \<C>')), return := Some t2s\<rparr>"
     by fastforce
-  hence "\<S>\<bullet>\<C>'' \<turnstile> [$Block ([] _> t2s) es] : ([] _> t2s)"
-    using ts_c_def b_e_typing.block[of "([] _> t2s)" "[]" "t2s" _ es] e_typing_s_typing.intros(1)[of _ "[Block ([] _> t2s) es]"]
-    by fastforce
   moreover
-  have t_eqs:"ts = ts_c" "t1s = tvs"
-    using tvs_def(1,2) ts_c_def(1)
-    by simp_all
-  have 1:"tfs = map typeof zs"
-    using n_zeros_typeof assms(8)
-    by simp
-  have "t1s = map typeof vs"
-    using typing_map_typeof assms(3) tvs_def t_eqs
-    by fastforce
-  hence "(t1s @ tfs) = map typeof (vs @ zs)"
-    using 1
-    by simp
-  ultimately
-  have "\<S>\<bullet>Some t2s \<tturnstile>_i (vs @ zs);([$Block ([] _> t2s) es]) : t2s"
-    using e_typing_s_typing.intros(9) ts_c_def c''_def
+  have cltyping:"cl_typing \<S> cl (t1s _> t2s)"
+    sorry
+  hence "\<S>\<bullet>\<C>'' \<turnstile> [Callcl cl] : (t1s _> t2s)"
+    print_statement e_typing_s_typing.intros
+    using ts_c_def e_typing_s_typing.intros(6)[OF cltyping]
     by fastforce
   thus ?thesis
-    using e_typing_s_typing.intros(3,5) ts_c_def t_eqs(1) assms(2,7)
+    print_statement e_typing_s_typing.intros
+    using e_typing_s_typing.intros(3,7) ts_c_def assms(2,7)
     by fastforce
 qed
 
@@ -1792,7 +1790,8 @@ next
     by simp
   ultimately
   have "cl_typing \<S> (sfunc s i j) (tf1 _> tf2)"
-    using store_typing_imp_func_agree[OF return_call(1)] l_func_t(4) return_call(4)
+    print_statement e_typing_s_typing.intros
+    using store_typing_imp_func_agree[OF return_call(1)] l_func_t(3) return_call(4)
     by fastforce
   thus ?case
     using e_typing_s_typing.intros(3,7) l_func_t
@@ -2921,14 +2920,14 @@ next
     using progress_L0[OF reduce.intros(5) return_call(7)]
     by fastforce
 next
-  case (return_call_indirect j \<C> t1s t2s t3s)
-  obtain cs1 cs2 where cs_def:"\<S>\<bullet>\<C> \<turnstile> cs1 : ([]_> t1s)"
+  case (return_call_indirect j \<C> t1s t2s t3s t4s)
+  obtain cs1 cs2 where cs_def:"\<S>\<bullet>\<C> \<turnstile> cs1 : ([]_> (t3s @ t1s))"
                               "\<S>\<bullet>\<C> \<turnstile> cs2 : ([] _> [T_i32])"
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-    using e_type_const_list_cons[OF return_call_indirect(8), of \<S> \<C> t1s "[T_i32]"]
-          e_type_const_list[of _ \<S> \<C> t1s "t3s @ t1s @ [T_i32]"]
+    using e_type_const_list_cons[OF return_call_indirect(8), of \<S> \<C> "t3s @ t1s" "[T_i32]"]
+          e_type_const_list[of _ \<S> \<C> "t3s @ t1s" "t3s @ t1s @ [T_i32]"]
           return_call_indirect(5)
     by fastforce
   obtain c where c_def:"cs2 = [$C ConstInt32 c]"
@@ -3582,6 +3581,7 @@ proof -
         by simp
       have "\<exists>a a'. \<lparr>s;vs;vs2 @ [TailCallcl cl]\<rparr> \<leadsto>_ i \<lparr>s;vs;a\<rparr>"
         print_statement reduce.intros
+print_statement func_native_def
         using reduce.intros(9)[OF func_native_def] e_type_const_conv_vs[OF vs_def(5)] l
         unfolding n_zeros_def
         by fastforce
