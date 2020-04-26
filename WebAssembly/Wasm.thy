@@ -212,6 +212,7 @@ inductive reduce :: "[s, v list, e list, nat, s, v list, e list] \<Rightarrow> b
 | tail_callcl_native:"\<lbrakk>cl = Func_native j (t1s _> t2s) ts bes; ves = ($$* vcs); length vcs = n; length t1s = n; length t2s = m; Lfilled k lholed (ves @ [TailCallcl cl]) es\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [TailCallcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;ves@[Callcl cl]\<rparr>"
 | callcl_host_Some:"\<lbrakk>cl = Func_host (t1s _> t2s) f; ves = ($$* vcs); length vcs = n; length t1s = n; length t2s = m; host_apply s (t1s _> t2s) f vcs hs = Some (s', vcs')\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [Callcl cl]\<rparr> \<leadsto>_i \<lparr>s';vs;($$* vcs')\<rparr>"
 | callcl_host_None:"\<lbrakk>cl = Func_host (t1s _> t2s) f; ves = ($$* vcs); length vcs = n; length t1s = n; length t2s = m\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [Callcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
+| tail_callcl_host:"\<lbrakk>cl = Func_host (t1s _> t2s) f\<rbrakk> \<Longrightarrow> \<lparr>s;vs;ves @ [TailCallcl cl]\<rparr> \<leadsto>_i \<lparr>s;vs;[Trap]\<rparr>"
   \<comment> \<open>\<open>get_local\<close>\<close>
 | get_local:"\<lbrakk>length vi = j\<rbrakk> \<Longrightarrow> \<lparr>s;(vi @ [v] @ vs);[$(Get_local j)]\<rparr> \<leadsto>_i \<lparr>s;(vi @ [v] @ vs);[$(C v)]\<rparr>"
   \<comment> \<open>\<open>set_local\<close>\<close>
