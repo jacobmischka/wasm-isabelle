@@ -778,85 +778,34 @@ next
     by fastforce
 qed
 
-lemma e_type_tail_callcl_native:
-  assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t1s' _> t2s')"
-          "cl = Func_native i tf ts es"
-  shows "\<exists>t1s t2s ts_c. (t1s' = ts_c @ t1s)
-                         \<and> (t2s' = ts_c @ t2s)
-                         \<and> tf = (t1s _> t2s)
-                         \<and> i < length (s_inst \<S>)
-                         \<and> (((s_inst \<S>)!i)\<lparr>local := (local ((s_inst \<S>)!i)) @ t1s @ ts, label := ([t2s] @ (label ((s_inst \<S>)!i))), return := Some t2s\<rparr>  \<turnstile> es : ([] _> t2s))"
-  using assms
-proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t1s' _> t2s')" arbitrary: t1s' t2s')
-  case (1 \<C> b_es \<S>)
-  thus ?case
-    by auto
-next
-  case (2 \<S> \<C> es t1s t2s e t3s)
-  have "\<C> \<turnstile> [] : (t1s _> t2s)"
-    using 2(1,5) unlift_b_e
-    by (metis Nil_is_map_conv append_Nil butlast_snoc)
-  thus ?case
-    using 2(4,5,6)
-    by fastforce
-next
-  case (3 \<S> \<C> t1s t2s ts)
-    thus ?case
-    by fastforce
-next
-  case (7 \<S> \<C>)
-  thus ?case
-    unfolding cl_typing.simps
-    by fastforce
-qed
-
-lemma e_type_tail_callcl_host:
-  assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t1s' _> t2s')"
-          "cl = Func_host tf f"
-  shows "\<exists>t1s t2s ts_c. (t1s' = ts_c @ t1s)
-                        \<and> (t2s' = ts_c @ t2s)
-                        \<and> tf = (t1s _> t2s)"
-  using assms
-proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t1s' _> t2s')" arbitrary: t1s' t2s')
-  case (1 \<C> b_es \<S>)
-  thus ?case
-    by auto
-next
-  case (2 \<S> \<C> es t1s t2s e t3s)
-  have "\<C> \<turnstile> [] : (t1s _> t2s)"
-    using 2(1,5) unlift_b_e
-    by (metis Nil_is_map_conv append_Nil butlast_snoc)
-  thus ?case
-    using 2(4,5,6)
-    by fastforce
-next
-  case (3 \<S> \<C> t1s t2s ts)
-    thus ?case
-    by fastforce
-next
-  case (7 \<S> \<C>)
-  thus ?case
-    unfolding cl_typing.simps
-    by fastforce
-qed
-
 lemma e_type_tail_callcl:
-  assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t1s' _> t2s')"
-  shows "\<exists>t1s t2s ts_c. (t1s' = ts_c @ t1s)
-                        \<and> (t2s' = ts_c @ t2s)
-                        \<and> cl_type cl = (t1s _> t2s)"
-proof (cases cl)
-  case (Func_native x11 x12 x13 x14)
-  thus ?thesis
-    using e_type_tail_callcl_native[OF assms]
-    unfolding cl_type_def
-    by (cases x12) fastforce
+  assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t31s _> t4s')"
+  shows "\<exists>t2s' t3s' t1s'. t31s = t3s' @ t1s'  
+              \<and> cl_type cl = (t1s' _> t2s')"
+  using assms
+proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t31s _> t4s')" arbitrary: t31s t4s')
+  case (1 \<C> b_es \<S>)
+  then show ?case sorry
 next
-  case (Func_host x21 x22)
-  thus ?thesis
-    using e_type_tail_callcl_host[OF assms]
-    unfolding cl_type_def
+  case (2 \<S> \<C> es t1s t2s e t3s)
+  have "\<C> \<turnstile> [] : (t3s @ t1s _> t2s)"
+    using 2(1,5) unlift_b_e
+(*    by (metis Nil_is_map_conv append_Nil butlast_snoc)*)
+  sorry
+  thus ?case
+    using 2(4,5)
+    
+  sorry
+next
+  case (3 \<S> \<C> t1s t2s ts)
+  then show ?case sorry
+next
+  case 4
+  thus ?case
     by fastforce
+next
+  case (7 \<S> t1s t2s \<C> t3s t4s)
+  then show ?case sorry
 qed
 
 lemma s_type_unfold:
