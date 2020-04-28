@@ -792,7 +792,7 @@ proof -
           unlift_b_e[of \<S> \<C> "[C ConstInt32 c]"]
           unlift_b_e[of \<S> \<C> "[ReturnCall_indirect j]"]
     by fastforce
-  then obtain ts_l ts_c where ts_c_def:"ts'' = ts_c @ ts_l @ [T_i32]"
+  then obtain ts_l ts_c t2s' where ts_c_def:"ts'' = ts_c @ ts_l @ [T_i32]" "(return \<C>) = Some t2s'"
     using b_e_type_return_call_indirect[of \<C> "ReturnCall_indirect j" ts'' ts']
     by fastforce
   hence ts_def:"ts = ts_c @ ts_l"
@@ -827,20 +827,16 @@ proof -
     by auto
   then
   obtain t4s where t4s_def:"\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : ts''a @ t1s _> t4s"
-    using e_typing_s_typing.intros(7) assms(6,7) ts''a_def(1)
+    using e_typing_s_typing.intros(7) assms(6,7) ts''a_def(1,4)
     by fastforce
   then
-  obtain t2s' where t2s'_def:"cl_type cl = (t1s _> t2s')"
+  obtain t2s'' where t2s'_def:"cl_type cl = (t1s _> t2s'')"
     using assms(4) tf_def
     by blast
   ultimately
   show "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (ts _> ts')"
-    using \<open>cl_typing \<S> cl (t1s _> t2s)\<close> e_typing_s_typing.intros(7) ts_def
+    using \<open>cl_typing \<S> cl (t1s _> t2s)\<close> e_typing_s_typing.intros(7) ts_def ts''a_def ts_c_def
     by force
-(*
-    using tf_def t2s'_def e_typing_s_typing.intros(3)
-    by auto
-*)
 qed
 
 lemma types_preserved_return_call_indirect_None:
@@ -953,38 +949,39 @@ qed
 
 lemma type_const_tail_callcl:
   assumes "Lfilled i lholed (vs @ [TailCallcl cl]) LI"
-          "(return \<C>) = Some tcs"
-          "length tcs = length vs"
+          "(return \<C>) = Some tc2s"
+          "cl_type cl = (tc1s _> tc2s)"
+          "length vs = length tc1s"
           "\<S>\<bullet>\<C> \<turnstile> LI : (ts _> ts')"
           "const_list vs"
-  shows "\<S>\<bullet>\<C>' \<turnstile> vs : ([] _> tcs)"
+  shows "\<S>\<bullet>\<C>' \<turnstile> vs : ([] _> tc1s)"
   using assms
 proof (induction i arbitrary: ts ts' lholed \<C> LI \<C>')
   case 0
   obtain vs' es' where "LI = (vs' @ (vs @ [TailCallcl cl]) @ es')"
     using Lfilled.simps[of 0 lholed "(vs @ [TailCallcl cl])" LI] 0(1)
     by fastforce
+  print_statement e_type_comp_conc1
   then obtain ts'' ts''' where "\<S>\<bullet>\<C> \<turnstile> vs' : (ts _> ts'')"
                                "\<S>\<bullet>\<C> \<turnstile> (vs @ [TailCallcl cl]) : (ts'' _> ts''')"
                                "\<S>\<bullet>\<C> \<turnstile> es' : (ts''' _> ts')"
-    using e_type_comp_conc2[of \<S> \<C> vs' "(vs @ [TailCallcl cl])" es'] 0(4)
+    using e_type_comp_conc2[of \<S> \<C> vs' "(vs @ [TailCallcl cl])" es'] 0(5)
     by fastforce
   then obtain t31s where t31s_def:"\<S>\<bullet>\<C> \<turnstile> vs : (ts'' _> t31s)" "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t31s _> ts''')"
     using e_type_comp_conc1
     by fastforce
-  then obtain t3s t1s t2s where t3s_t1s_def:"t31s = t3s @ t1s" "cl_type cl = (t1s _> t2s)"
-    print_statement e_type_tail_callcl 0
-    using e_type_tail_callcl[of \<S> \<C> cl t31s ts''']
+  then obtain t3s t1s where t3s_t1s_def:"t31s = t3s @ t1s"
+                                            "cl_type cl = (t1s _> tc2s)"
+                                            "(return \<C>) = Some tc2s"
+    using 0(2) e_type_tail_callcl[of \<S> \<C> cl t31s ts''']
     by fastforce
   obtain tcs' where "t31s = ts'' @ tcs'" "length vs = length tcs'" "\<S>\<bullet>\<C>' \<turnstile> vs : ([] _> tcs')"
-    using t31s_def(1) e_type_const_list 0(5)
+    using t31s_def(1) e_type_const_list 0(6)
     by fastforce
   thus ?case
-    sorry
-(*
-    using 0(3) t3s_t1s_def
+    print_statement 0
+    using 0(4) t3s_t1s_def
     by simp
-*)
 next
   case (Suc i)
   obtain vs' n l les les' LK where es_def:"lholed = (LRec vs' n les l les')"
@@ -1000,7 +997,7 @@ next
        "length tls = n"
        "\<S>\<bullet>\<C> \<turnstile> les : (tls _> t2s)"
        "\<S>\<bullet>\<C>\<lparr>label := [tls] @ label \<C>\<rparr> \<turnstile> LK : ([] _> t2s)"
-       "return (\<C>\<lparr>label := [tls] @ label \<C>\<rparr>) = Some tcs"
+       "return (\<C>\<lparr>label := [tls] @ label \<C>\<rparr>) = Some tc1s"
     using e_type_label[of \<S> \<C> n les LK ts'' ts'''] Suc(3)
     by fastforce
   then show ?case
@@ -1009,30 +1006,26 @@ next
 qed
 
 lemma types_preserved_tail_callcl:
-  assumes "\<lparr>s;vs;[Local n k vls LI]\<rparr> \<leadsto>_i \<lparr>s;vs;ves@[Callcl cl]\<rparr>"
-          "\<S>\<bullet>\<C> \<turnstile> [Local n k vls LI] : (ts _> ts')"
+  assumes "\<S>\<bullet>\<C> \<turnstile> [Local m k vls LI] : (ts _> ts')"
           "cl_type cl = (t1s _> t2s)"
-          "ves = $$* vcs"
+          "const_list vcs"
           "length vcs = n"
           "length t1s = n"
           "length t2s = m"
-          "Lfilled j lholed (ves @ [TailCallcl cl]) es"
+          "Lfilled j lholed (vcs @ [TailCallcl cl]) LI"
           "store_typing s \<S>"
-  shows "\<S>\<bullet>\<C> \<turnstile> ves@[Callcl cl] : (ts _> ts')"
+  shows "\<S>\<bullet>\<C> \<turnstile> vcs@[Callcl cl] : (ts _> ts')"
 proof -
-  have ves_c:"const_list ves"
-    using is_const_list[OF assms(4)]
-    by simp
   obtain tls \<C>' where l_def:"k < length (s_inst \<S>)"
                         "\<C>' = ((s_inst \<S>)!k)\<lparr>local := (local ((s_inst \<S>)!k)) @ (map typeof vls), return := Some tls\<rparr>"
                         "\<S>\<bullet>\<C>' \<turnstile> LI : ([] _> tls)"
                         "ts' = ts @ tls"
-                        "length tls = n"
+                        "length tls = m"
     using e_type_local[OF assms(2)]
     by blast
-  hence "\<S>\<bullet>\<C> \<turnstile> ves : ([] _> tls)"
+  hence "\<S>\<bullet>\<C> \<turnstile> vcs : ([] _> tls)"
     print_statement assms
-    using type_const_tail_callcl[OF assms(8) _ _ l_def(3)] ves_c assms(5,8)
+    using type_const_tail_callcl[OF assms(8) _ _ l_def(3)] assms(4,5,8)
     by fastforce
 
   thus ?thesis
@@ -1827,7 +1820,6 @@ next
     by simp
   ultimately
   have "cl_typing \<S> (sfunc s i j) (tf1 _> tf2)"
-    print_statement e_typing_s_typing.intros
     using store_typing_imp_func_agree[OF return_call(1)] l_func_t(3) return_call(4)
     by fastforce
   thus ?case

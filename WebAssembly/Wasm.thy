@@ -90,7 +90,7 @@ and       s_typing :: "[s_context, (t list) option, nat, v list, e list, t list]
   (* callcl *)
 | "\<lbrakk>cl_typing \<S> cl tf\<rbrakk> \<Longrightarrow> \<S>\<bullet>\<C>  \<turnstile> [Callcl cl] : tf"
   (* tailcallcl *)
-| "\<lbrakk>cl_typing \<S> cl (t1s _> t2s)\<rbrakk> \<Longrightarrow> \<S>\<bullet>\<C>  \<turnstile> [TailCallcl cl] : (t3s @ t1s _> t4s)"
+| "\<lbrakk>cl_typing \<S> cl (t1s _> t2s); (return \<C>) = Some t2s\<rbrakk> \<Longrightarrow> \<S>\<bullet>\<C>  \<turnstile> [TailCallcl cl] : (t3s @ t1s _> t4s)"
   (* label *)
 | "\<lbrakk>\<S>\<bullet>\<C> \<turnstile> e0s : (ts _> t2s); \<S>\<bullet>\<C>\<lparr>label := ([ts] @ (label \<C>))\<rparr> \<turnstile> es : ([] _> t2s); length ts = n\<rbrakk> \<Longrightarrow> \<S>\<bullet>\<C> \<turnstile> [Label n e0s es] : ([] _> t2s)"
 (* section: s_typing *)
