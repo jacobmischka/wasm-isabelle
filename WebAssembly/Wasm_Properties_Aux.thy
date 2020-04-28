@@ -788,6 +788,7 @@ proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t31s _> t4s')" arbitrary: t31
   then show ?case sorry
 next
   case (2 \<S> \<C> es t1s t2s e t3s)
+  thus ?case
   have "\<C> \<turnstile> [] : (t3s @ t1s _> t2s)"
     using 2(1,5) unlift_b_e
 (*    by (metis Nil_is_map_conv append_Nil butlast_snoc)*)
