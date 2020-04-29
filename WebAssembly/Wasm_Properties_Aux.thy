@@ -779,12 +779,12 @@ next
 qed
 
 lemma e_type_tail_callcl:
-  assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t31s _> t4s')"
-  shows "\<exists>t2s' t3s' t1s'. t31s = t3s' @ t1s'  
-              \<and> cl_type cl = (t1s' _> t2s')
+  assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t31s _> t4s)"
+  shows "\<exists>t3s' t1s' t2s'. t31s = t3s' @ t1s'  
+              \<and> cl_typing \<S> cl (t1s' _> t2s')
               \<and> (return \<C>) = Some t2s'"
   using assms
-proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t31s _> t4s')" arbitrary: t31s t4s')
+proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t31s _> t4s)" arbitrary: t31s t4s)
   case (1 \<C> b_es \<S>)
   then show ?case
     by fastforce
@@ -798,18 +798,20 @@ next
     by fastforce
 next
   case (3 \<S> \<C> t1s t2s ts)
-  then show ?case by fastforce
+  then show ?case
+    by (metis append.assoc)
 next
   case 4
   thus ?case
     by fastforce
 next
-  case (7 \<S> t1s t2s \<C> t3s t4s)
+  case (7 \<S> t1s t2s \<C> t4s)
   (* FIXME: This can surely be cleaned up *)
   have "cl_type cl = (t1s _> t2s)"
     by (smt "7.hyps"(1) cl.case(1) cl.case(2) cl_type_def cl_typing.cases)
   then show ?case
-    using "7.hyps"(2) by blast
+    using "7.hyps"(2)
+    sorry
 qed
 
 lemma s_type_unfold:
