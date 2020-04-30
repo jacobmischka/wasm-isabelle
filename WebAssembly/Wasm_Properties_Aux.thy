@@ -808,10 +808,11 @@ next
   case (7 \<S> t1s t2s \<C> t4s)
   (* FIXME: This can surely be cleaned up *)
   have "cl_type cl = (t1s _> t2s)"
-    by (smt "7.hyps"(1) cl.case(1) cl.case(2) cl_type_def cl_typing.cases)
+    using "7.hyps"(1) cl.case(1,2) cl_type_def cl_typing.cases
+    by smt
   then show ?case
-    using "7.hyps"(2)
-    sorry
+    using "7.hyps"
+    by fastforce
 qed
 
 lemma s_type_unfold:

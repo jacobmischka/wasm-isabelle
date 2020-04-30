@@ -2255,7 +2255,7 @@ proof (induction "[$Return]" es arbitrary: \<C> ts rule: Lfilled.induct)
     using e_type_comp_conc2[OF L0(3)]
     by fastforce
   obtain ts_c where "ts' = ts_c @ tvs"
-    using b_e_type_return[of \<C> "Return" ts' ts''] L0(3,4) ts_def(2) unlift_b_e
+    using b_e_type_return[of \<C> "Return" ts' ts''] L0(4) ts_def(2) unlift_b_e
     by fastforce
   then obtain vs1 vs2 where vs_def:"\<S>\<bullet>\<C> \<turnstile> vs1 : ([] _> ts_c)"
                                    "\<S>\<bullet>\<C> \<turnstile> vs2 : (ts_c _> (ts_c@tvs))"
@@ -2292,7 +2292,6 @@ qed
 lemma progress_LN_tail_callcl:
   assumes "(Lfilled j lholed [TailCallcl cl] es)"
           "\<S>\<bullet>\<C> \<turnstile> es : ([] _> ts)"
-          "cl_typing \<S> cl (t1s _> t2s)"
           "(return \<C>) = Some t2s"
   shows "\<exists>lholed' vs \<C>'. (Lfilled j lholed' (vs@[TailCallcl cl]) es)
                     \<and> (\<S>\<bullet>\<C>' \<turnstile> vs : ([] _> t1s))
@@ -2305,10 +2304,11 @@ proof (induction "[TailCallcl cl]" es arbitrary: \<C> ts rule: Lfilled.induct)
                                  "\<S>\<bullet>\<C> \<turnstile> es' : (ts'' _> ts)"
     using e_type_comp_conc2[OF L0(3)]
     by fastforce
-  obtain t3s t1s t2s where "ts' = t3s @ t1s" "(return \<C>) = Some t2s" "cl_typing \<S> cl (t1s _> t2s)"
-    using e_type_tail_callcl[of \<S> \<C> cl ts' ts''] L0(3,4) ts_def(2)
+  obtain t3s where "ts' = t3s @ t1s"
+    (* I do not understand why this doesn't unify? *)
+    using e_type_tail_callcl[of \<S> \<C> cl ts' ts''] L0(4) ts_def(2)
     by fastforce
-  print_statement Lfilled.intros
+  print_statement L0
   then obtain vs1 vs2 where vs_def:"\<S>\<bullet>\<C> \<turnstile> vs1 : ([] _> t3s)"
                                    "\<S>\<bullet>\<C> \<turnstile> vs2 : (t3s _> (t3s@t1s))"
                                    "vs = vs1@vs2"
@@ -2319,22 +2319,21 @@ proof (induction "[TailCallcl cl]" es arbitrary: \<C> ts rule: Lfilled.induct)
   hence "\<S>\<bullet>\<C> \<turnstile> vs2 : ([] _> t1s)"
     using e_type_const_list by blast
   thus ?case
-    using Lfilled.intros(1)[OF vs_def(5), of _ es' "vs2@[TailCallcl cl]"] vs_def(3,4)
+    using Lfilled.intros(1)[OF vs_def(4), of _ es' "vs2@[TailCallcl cl]"] vs_def(3,4,5)
     by fastforce
 next
   case (LN vs lholed n es' l es'' j lfilledk)
-  obtain t1s t2s where ts_def:"\<S>\<bullet>\<C> \<turnstile> vs : ([] _> t1s)"
-                               "\<S>\<bullet>\<C> \<turnstile> [Label n es' lfilledk] : (t1s _> t2s)"
-                               "\<S>\<bullet>\<C> \<turnstile> es'' : (t2s _> ts)"
+  obtain t1s' t2s' where ts_def:"\<S>\<bullet>\<C> \<turnstile> vs : ([] _> t1s')"
+                               "\<S>\<bullet>\<C> \<turnstile> [Label n es' lfilledk] : (t1s' _> t2s')"
+                               "\<S>\<bullet>\<C> \<turnstile> es'' : (t2s' _> ts)"
   using e_type_comp_conc2[OF LN(5)]
   by fastforce
-  obtain ts' ts_l where ts_l_def:"\<S>\<bullet>\<C>\<lparr>label := [ts'] @ label \<C>\<rparr> \<turnstile> lfilledk : ([] _> ts_l)"
+  obtain ts' ts3 where ts_l_def:"\<S>\<bullet>\<C>\<lparr>label := [ts'] @ label \<C>\<rparr> \<turnstile> lfilledk : ([] _> ts3)"
     using e_type_label[OF ts_def(2)]
     by fastforce
   obtain lholed' vs' \<C>' where lfilledk_def:"Lfilled j lholed' (vs' @ [TailCallcl cl]) lfilledk"
                                           "\<S>\<bullet>\<C>' \<turnstile> vs' : ([] _> t1s)"
                                           "const_list vs'"
-    print_statement Lfilled.intros
     using LN(4)[OF ts_l_def] LN(6)
     by fastforce
   thus ?case
@@ -3602,7 +3601,7 @@ proof -
       thus ?thesis 
         using progress_LN1[OF temp1 es_def(1)]
         by linarith
-next
+    next
       case this_5:5
       then obtain k lholed cl where local_assms:"(Lfilled k lholed [TailCallcl cl] es)"
         by blast
@@ -3611,14 +3610,13 @@ next
                                                    "const_list vs'"
         using progress_LN_tail_callcl[OF local_assms, of \<S> _ ts ts] s_type_unfold[OF 5(1)]
         by fastforce
+      (* I need to pass way more into reduce.tail_callcl and reduce.intros(11) *)
       hence temp1:"\<exists>a. \<lparr>s;vs;[Local n j vls es]\<rparr> \<leadsto>_i \<lparr>s;vs;vs'@[Callcl cl]\<rparr>"
-        sorry
-(*
         using reduce.tail_callcl[OF _ lholed'_def(3)]
               e_type_const_list[OF lholed'_def(3,2)] 5(2)
-        by fastforce
-*)
+        sorry
       show ?thesis
+        print_statement 5
         using temp1 progress_L0[OF reduce.intros(11) 5(6)] 5(5)
         sorry
     qed
