@@ -973,11 +973,9 @@ proof (induction i arbitrary: ts ts' lholed \<C> LI \<C>')
     using t31s_def(1) e_type_const_list 0(6)
     by fastforce
   then obtain t3s where t3s_t1s_def:"t31s = t3s @ tc1s"
-                                            "cl_type cl = (tc1s _> tc2s)"
-                                            "(return \<C>) = Some tc2s"
-    using 0(2,4) e_type_tail_callcl[of \<S> \<C> cl t31s ts'''] t31s_def assms(4)
-    print_statement 0
-    (* why don't you unify? *)
+                                    "cl_type cl = (tc1s _> tc2s)"
+                                    "(return \<C>) = Some tc2s"
+    using 0(2,4) e_type_tail_callcl[of \<S> \<C> cl t31s ts'''] t31s_def assms(4) tcs'_def(2) assms(3)
     by fastforce
   thus ?case
     using tcs'_def t3s_t1s_def 0(4,6) tcs'_def
@@ -2283,7 +2281,7 @@ lemma progress_LN_tail_callcl:
   assumes "(Lfilled j lholed [TailCallcl cl] es)"
           "\<S>\<bullet>\<C> \<turnstile> es : ([] _> ts)"
           "(return \<C>) = Some t2s"
-  shows "\<exists>lholed' vs \<C>'. (Lfilled j lholed' (vs@[TailCallcl cl]) es)
+  shows "\<exists>lholed' vs \<C>' t1s. (Lfilled j lholed' (vs@[TailCallcl cl]) es)
                     \<and> (\<S>\<bullet>\<C>' \<turnstile> vs : ([] _> t1s))
                     \<and> const_list vs"
   using assms
@@ -2294,11 +2292,9 @@ proof (induction "[TailCallcl cl]" es arbitrary: \<C> ts rule: Lfilled.induct)
                                  "\<S>\<bullet>\<C> \<turnstile> es' : (ts'' _> ts)"
     using e_type_comp_conc2[OF L0(3)]
     by fastforce
-  obtain t3s where "ts' = t3s @ t1s"
-    (* I do not understand why this doesn't unify? *)
+  obtain t1s t3s where "ts' = t3s @ t1s"
     using e_type_tail_callcl[of \<S> \<C> cl ts' ts''] L0(4) ts_def(2)
     by fastforce
-  print_statement L0
   then obtain vs1 vs2 where vs_def:"\<S>\<bullet>\<C> \<turnstile> vs1 : ([] _> t3s)"
                                    "\<S>\<bullet>\<C> \<turnstile> vs2 : (t3s _> (t3s@t1s))"
                                    "vs = vs1@vs2"
@@ -2321,7 +2317,7 @@ next
   obtain ts' ts3 where ts_l_def:"\<S>\<bullet>\<C>\<lparr>label := [ts'] @ label \<C>\<rparr> \<turnstile> lfilledk : ([] _> ts3)"
     using e_type_label[OF ts_def(2)]
     by fastforce
-  obtain lholed' vs' \<C>' where lfilledk_def:"Lfilled j lholed' (vs' @ [TailCallcl cl]) lfilledk"
+  obtain lholed' vs' \<C>' t1s where lfilledk_def:"Lfilled j lholed' (vs' @ [TailCallcl cl]) lfilledk"
                                           "\<S>\<bullet>\<C>' \<turnstile> vs' : ([] _> t1s)"
                                           "const_list vs'"
     using LN(4)[OF ts_l_def] LN(6)
