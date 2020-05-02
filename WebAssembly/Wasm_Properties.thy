@@ -2678,6 +2678,7 @@ lemma progress_b_e:
           "\<S>\<bullet>\<C> \<turnstile> cs : ([] _> ts)"
           "(\<And>lholed. \<not>(Lfilled 0 lholed [$Return] (cs@($*b_es))))"
           "\<And> i lholed. \<not>(Lfilled 0 lholed [$Br (i)] (cs@($*b_es)))"
+          "\<And>lholed cl. \<not>(Lfilled 0 lholed [TailCallcl cl] (cs@($*b_es)))"
           "const_list cs"
           "\<not> const_list ($* b_es)"
           "i < length (s_inst \<S>)"
@@ -2698,7 +2699,7 @@ next
 next
   case (unop_f t \<C> uv)
   thus ?case
-    using progress_unop_f[OF unop_f(2,1,5)]
+    using progress_unop_f[OF unop_f(2,1,6)]
     by fastforce
 next
   case (extendsop t \<C> uu)
@@ -2713,7 +2714,7 @@ next
 next
   case (binop_f t \<C> ux)
   thus ?case
-    using progress_binop_relop_f[OF binop_f(2,1,5)]
+    using progress_binop_relop_f[OF binop_f(2,1,6)]
     by fastforce
 next
   case (testop t \<C> uy)
@@ -2728,12 +2729,12 @@ next
 next
   case (relop_f t \<C> va)
   thus ?case
-    using progress_binop_relop_f[OF relop_f(2,1,5)]
+    using progress_binop_relop_f[OF relop_f(2,1,6)]
     by fastforce
 next
   case (convert t1 t2 sx \<C>)
   obtain v where cs_def:"cs = [$ C v]" "typeof v = t2"
-    using const_typeof const_of_const_list[OF _ convert(6)] e_type_const_list[OF convert(6,3)]
+    using const_typeof const_of_const_list[OF _ convert(7)] e_type_const_list[OF convert(7,3)]
     by fastforce
   thus ?case
   proof (cases "cvt t1 sx v")
@@ -2752,7 +2753,7 @@ next
 next
   case (convert_sat t1 t2 sx \<C>)
   obtain v where cs_def:"cs = [$ C v]" "typeof v = t2"
-    using const_typeof const_of_const_list[OF _ convert_sat(6)] e_type_const_list[OF convert_sat(6,3)]
+    using const_typeof const_of_const_list[OF _ convert_sat(7)] e_type_const_list[OF convert_sat(7,3)]
     by fastforce
   thus ?case
   proof (cases "cvt_sat t1 sx v")
@@ -2771,7 +2772,7 @@ next
 next
   case (reinterpret t1 t2 \<C>)
   obtain v where cs_def:"cs = [$ C v]" "typeof v = t2"
-    using const_typeof const_of_const_list[OF _ reinterpret(6)] e_type_const_list[OF reinterpret(6,3)]
+    using const_typeof const_of_const_list[OF _ reinterpret(7)] e_type_const_list[OF reinterpret(7,3)]
     by fastforce
   thus ?case
     using reduce.intros(1)[OF reduce_simple.reinterpret]
@@ -2780,30 +2781,30 @@ next
 next
   case (unreachable \<C> ts ts')
   thus ?case
-    using reduce.intros(1)[OF reduce_simple.unreachable] progress_L0[OF _ unreachable(4)]
+    using reduce.intros(1)[OF reduce_simple.unreachable] progress_L0[OF _ unreachable(5)]
     by fastforce
 next
   case (nop \<C>)
   thus ?case
-    using reduce.intros(1)[OF reduce_simple.nop] progress_L0[OF _ nop(4)]
+    using reduce.intros(1)[OF reduce_simple.nop] progress_L0[OF _ nop(5)]
     by fastforce
 next
   case (drop \<C> t)
   obtain v where "cs = [$C v]"
-    using const_of_const_list drop(4) e_type_const_list[OF drop(4,1)]
+    using const_of_const_list drop(5) e_type_const_list[OF drop(5,1)]
     by fastforce
   thus ?case
-    using reduce.intros(1)[OF reduce_simple.drop] progress_L0[OF _ drop(4)]
+    using reduce.intros(1)[OF reduce_simple.drop] progress_L0[OF _ drop(5)]
     by fastforce
 next
   case (select \<C> t)
   obtain v1 v2 v3 where cs_def:"\<S>\<bullet>\<C> \<turnstile> [$ C v3] : ([] _> [T_i32])"
                                "cs = [$C v1, $C v2, $ C v3]"
-    using const_list_split_3[OF select(4,1)] select(4)
+    using const_list_split_3[OF select(5,1)] select(5)
     unfolding const_list_def
     by (metis list_all_simps(1) e_type_const_unwrap)
   obtain c3 where c_def:"v3 = ConstInt32 c3"
-    using cs_def select(4) const_of_i32[OF _ cs_def(1)]
+    using cs_def select(5) const_of_i32[OF _ cs_def(1)]
     unfolding const_list_def
     by fastforce
   have "\<exists>a s' vs' es'. \<lparr>s;vs;[$C v1, $C v2, $ C ConstInt32 c3, $Select]\<rparr> \<leadsto>_i \<lparr>s';vs';es'\<rparr>"
@@ -2824,14 +2825,14 @@ next
 next
   case (block tf tn tm \<C> es)
   show ?case
-    using reduce_simple.block[OF block(7), of _ tn tm _ es]
-          e_type_const_list[OF block(7,4)] reduce.intros(1) block(1)
+    using reduce_simple.block[OF block(8), of _ tn tm _ es]
+          e_type_const_list[OF block(8,4)] reduce.intros(1) block(1)
     by fastforce
 next
   case (loop tf tn tm \<C> es)
   show ?case
-    using reduce_simple.loop[OF loop(7), of _ tn tm _ es]
-          e_type_const_list[OF loop(7,4)] reduce.intros(1) loop(1) 
+    using reduce_simple.loop[OF loop(8), of _ tn tm _ es]
+          e_type_const_list[OF loop(8,4)] reduce.intros(1) loop(1) 
     by fastforce
 next
   case (if_wasm tf tn tm \<C> es1 es2)
@@ -2840,7 +2841,7 @@ next
                               "const_list c1s"
                               "const_list c2s"
                               "cs = c1s @ c2s"
-    using e_type_const_list_cons[OF if_wasm(9,6)] e_type_const_list
+    using e_type_const_list_cons[OF if_wasm(10,6)] e_type_const_list
     by fastforce
   obtain c where c_def: "c2s = [$ C (ConstInt32 c)]"
     using const_of_i32 cs_def
@@ -2863,7 +2864,7 @@ next
 next
   case (br i \<C> ts t1s t2s)
   thus ?case
-    using Lfilled.intros(1)[OF br(6), of _ "[]" "[$Br i]"]
+    using Lfilled.intros(1)[OF br(7), of _ "[]" "[$Br i]"]
     by fastforce
 next
   case (br_if j \<C> ts)
@@ -2872,7 +2873,7 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-    using e_type_const_list_cons[OF br_if(6,3)] e_type_const_list
+    using e_type_const_list_cons[OF br_if(7,3)] e_type_const_list
     by fastforce
   obtain c where c_def:"cs2 = [$C ConstInt32 c]"
     using const_of_i32[OF cs_def(4,2)]
@@ -2899,7 +2900,7 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-    using e_type_const_list_cons[OF br_table(5), of \<S> \<C> "(t1s @ ts)" "[T_i32]"]
+    using e_type_const_list_cons[OF br_table(6), of \<S> \<C> "(t1s @ ts)" "[T_i32]"]
           e_type_const_list[of _ \<S> \<C> "t1s @ ts" "(t1s @ ts) @ [T_i32]"]
           br_table(2,5)
     unfolding const_list_def
@@ -2927,12 +2928,12 @@ next
 next
   case (return \<C> ts t1s t2s)
   thus ?case
-    using Lfilled.intros(1)[OF return(5), of _ "[]" "[$Return]"]
+    using Lfilled.intros(1)[OF return(6), of _ "[]" "[$Return]"]
     by fastforce
 next
   case (call j \<C>)
   show ?case
-    using progress_L0[OF reduce.intros(2) call(6)]
+    using progress_L0[OF reduce.intros(2) call(7)]
     by fastforce
 next
   case (call_indirect j \<C> t1s t2s)
@@ -2941,8 +2942,7 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-print_statement call_indirect
-    using e_type_const_list_cons[OF call_indirect(7), of \<S> \<C> t1s "[T_i32]"]
+    using e_type_const_list_cons[OF call_indirect(8), of \<S> \<C> t1s "[T_i32]"]
           e_type_const_list[of _ \<S> \<C> t1s "t1s @ [T_i32]"]
           call_indirect(4)
     by fastforce
@@ -2977,7 +2977,7 @@ print_statement call_indirect
 next
   case (return_call j \<C>)
   show ?case
-    using progress_L0[OF reduce.intros(5) return_call(7)]
+    using progress_L0[OF reduce.intros(5) return_call(8)]
     by fastforce
 next
   case (return_call_indirect j \<C> t1s t2s t3s t4s)
@@ -2986,7 +2986,7 @@ next
                               "const_list cs1"
                               "const_list cs2"
                               "cs = cs1 @ cs2"
-    using e_type_const_list_cons[OF return_call_indirect(8), of \<S> \<C> "t3s @ t1s" "[T_i32]"]
+    using e_type_const_list_cons[OF return_call_indirect(9), of \<S> \<C> "t3s @ t1s" "[T_i32]"]
           e_type_const_list[of _ \<S> \<C> "t3s @ t1s" "t3s @ t1s @ [T_i32]"]
           return_call_indirect(5)
     by fastforce
@@ -3023,7 +3023,7 @@ next
   obtain v vj vj' where v_def:"v = vs ! j" "vj = (take j vs)" "vj' = (drop (j+1) vs)"
     by blast
   have j_def:"j < length vs"
-    using get_local(1,9)
+    using get_local(1,10)
     by simp
   hence vj_len:"length vj = j"
     using v_def(2)
@@ -3032,17 +3032,17 @@ next
     using v_def id_take_nth_drop j_def
     by fastforce
   thus ?case
-    using progress_L0[OF reduce.intros(12)[OF vj_len, of s v vj'] get_local(6)]
+    using progress_L0[OF reduce.intros(12)[OF vj_len, of s v vj'] get_local(7)]
     by fastforce
 next
   case (set_local j \<C> t)
   obtain v vj vj' where v_def:"v = vs ! j" "vj = (take j vs)" "vj' = (drop (j+1) vs)"
     by blast
   obtain v' where cs_def: "cs = [$C v']"
-    using const_of_const_list set_local(3,6) e_type_const_list
+    using const_of_const_list set_local(3,7) e_type_const_list
     by fastforce
   have j_def:"j < length vs"
-    using set_local(1,9)
+    using set_local(1,10)
     by simp
   hence vj_len:"length vj = j"
     using v_def(2)
@@ -3056,10 +3056,10 @@ next
 next
   case (tee_local i \<C> t)
   obtain v where "cs = [$C v]"
-    using const_of_const_list tee_local(3,6) e_type_const_list
+    using const_of_const_list tee_local(3,7) e_type_const_list
     by fastforce
   thus ?case
-    using reduce.intros(1)[OF reduce_simple.tee_local] tee_local(6)
+    using reduce.intros(1)[OF reduce_simple.tee_local] tee_local(7)
     unfolding const_list_def
     by fastforce
 next
@@ -3070,7 +3070,7 @@ next
 next
   case (set_global j \<C> t)
   obtain v where "cs = [$C v]"
-    using const_of_const_list set_global(4,7) e_type_const_list
+    using const_of_const_list set_global(4,8) e_type_const_list
     by fastforce
   thus ?case
     using reduce.intros(15)[of s i j v _ vs]
@@ -3078,11 +3078,11 @@ next
 next
   case (load \<C> n a tp_sx t off)
   obtain c where c_def: "cs = [$C ConstInt32 c]"
-    using const_of_i32 load(3,6) e_type_const_unwrap
+    using const_of_i32 load(3,7) e_type_const_unwrap
     unfolding const_list_def
     by fastforce
   obtain j where mem_some:"smem_ind s i = Some j"
-    using load(1,10)
+    using load(1,11)
     unfolding smem_ind_def
     by fastforce
   have "\<exists>a' s' vs' es'. \<lparr>s;vs;[$C ConstInt32 c, $Load t tp_sx a off]\<rparr> \<leadsto>_i \<lparr>s';vs';es'\<rparr>"
@@ -3127,18 +3127,18 @@ next
   obtain cs' v where cs_def:"\<S>\<bullet>\<C> \<turnstile> [cs'] : ([] _> [T_i32])"
                             "\<S>\<bullet>\<C> \<turnstile> [$ C v] : ([] _> [t])"
                             "cs = [cs',$ C v]"
-    using const_list_split_2[OF store(6,3)] e_type_const_unwrap
+    using const_list_split_2[OF store(7,3)] e_type_const_unwrap
     unfolding const_list_def
     by fastforce
   have t_def:"typeof v = t"
     using cs_def(2) b_e_type_value[OF unlift_b_e[of \<S> \<C> "[C v]" "([] _> [t])"]]
     by fastforce
   obtain j where mem_some:"smem_ind s i = Some j"
-    using store(1,10)
+    using store(1,11)
     unfolding smem_ind_def
     by fastforce
   obtain c where c_def:"cs' = $C ConstInt32 c"
-    using const_of_i32[OF _ cs_def(1)] cs_def(3) store(6)
+    using const_of_i32[OF _ cs_def(1)] cs_def(3) store(7)
     unfolding const_list_def
     by fastforce
   have "\<exists>a' s' vs' es'. \<lparr>s;vs;[$C ConstInt32 c, $C v, $Store t tp a off]\<rparr> \<leadsto>_i \<lparr>s';vs';es'\<rparr>"
@@ -3183,19 +3183,19 @@ next
 next
   case (current_memory \<C> n)
   obtain j where mem_some:"smem_ind s i = Some j"
-    using current_memory(1,9)
+    using current_memory(1,10)
     unfolding smem_ind_def
     by fastforce
   thus ?case
-    using progress_L0[OF reduce.intros(24)[OF mem_some] current_memory(5), of _ _ vs "[]"]
+    using progress_L0[OF reduce.intros(24)[OF mem_some] current_memory(6), of _ _ vs "[]"]
     by fastforce
 next
   case (grow_memory \<C> n)
   obtain c where c_def:"cs = [$C ConstInt32 c]"
-    using const_of_i32 grow_memory(2,5)
+    using const_of_i32 grow_memory(2,6)
     by fastforce
   obtain j where mem_some:"smem_ind s i = Some j"
-    using grow_memory(1,9)
+    using grow_memory(1,10)
     unfolding smem_ind_def
     by fastforce
   show ?case
@@ -3209,7 +3209,7 @@ next
 next
   case (composition \<C> es t1s t2s e t3s)
   consider (1) "\<not> const_list ($* es)" | (2) "const_list ($* es)" "\<not> const_list ($*[e])"
-    using composition(9)
+    using composition(10)
     unfolding const_list_def
     by fastforce
   thus ?case
@@ -3217,6 +3217,7 @@ next
     case 1
     have "(\<And>lholed. \<not> Lfilled 0 lholed [$Return] (cs @ ($* es)))"
          "(\<And>i lholed. \<not> Lfilled 0 lholed [$Br i] (cs @ ($* es)))"
+         "(\<And>lholed cl. \<not> Lfilled 0 lholed [TailCallcl cl] (cs @ ($* es)))"
     proof safe
       fix lholed
       assume "Lfilled 0 lholed [$Return] (cs @ ($* es))"
@@ -3243,15 +3244,28 @@ next
       thus False
         using composition(7)
         by simp
+    next
+      fix cl lholed
+      assume "Lfilled 0 lholed [TailCallcl cl] (cs @ ($* es))"
+      hence "\<exists>lholed'. Lfilled 0 lholed' [TailCallcl cl] (cs @ ($* es @ [e]))"
+      proof (cases rule: Lfilled.cases)
+        case (L0 vs es')
+        thus ?thesis
+          using Lfilled.intros(1)[of "vs" _ "es'@ ($*[e])" "[TailCallcl cl]"]
+          by (metis append.assoc map_append)
+      qed simp
+      thus False
+        using composition(8)
+        by simp
     qed
     thus ?thesis
-      using composition(2)[OF composition(5) _ _ composition(8) 1 composition(10,11,12)] progress_L0[of s vs "(cs @ ($* es))" i _ _ _ "[]" "$*[e]"]
+      using composition(2)[OF composition(5) _ _ _ composition(9) 1 composition(11-13)] progress_L0[of s vs "(cs @ ($* es))" i _ _ _ "[]" "$*[e]"]
       unfolding const_list_def
       by fastforce
   next
     case 2
     hence "const_list (cs@($* es))"
-      using composition(8)
+      using composition(9)
       unfolding const_list_def
       by simp
     moreover
@@ -3260,7 +3274,7 @@ next
       by fastforce
     ultimately
     show ?thesis
-      using composition(4)[of "(cs@($* es))"] 2(2) composition(6,7) composition(10-)
+      using composition(4)[of "(cs@($* es))"] 2(2) composition(6-8) composition(10-)
       by fastforce
   qed
 next
@@ -3270,10 +3284,11 @@ next
                               "cs = cs1 @ cs2"
                               "const_list cs1"
                               "const_list cs2"
-    using e_type_const_list_cons[OF weakening(6,3)] e_type_const_list[of _ \<S> \<C> "ts" "ts @ t1s"]
+    using e_type_const_list_cons[OF weakening(7,3)] e_type_const_list[of _ \<S> \<C> "ts" "ts @ t1s"]
     by fastforce
   have "(\<And>lholed. \<not> Lfilled 0 lholed [$Return] (cs2 @ ($* es)))"
        "(\<And>i lholed. \<not> Lfilled 0 lholed [$Br i] (cs2 @ ($* es)))"
+       "(\<And>lholed cl. \<not> Lfilled 0 lholed [TailCallcl cl] (cs2 @ ($* es)))"
   proof safe
     fix lholed
     assume "Lfilled 0 lholed [$Return] (cs2 @ ($* es))"
@@ -3302,9 +3317,23 @@ next
     thus False
       using weakening(5) cs_def(3)
       by simp
+ next
+    fix lholed cl
+    assume "Lfilled 0 lholed [TailCallcl cl] (cs2 @ ($* es))"
+    hence "\<exists>lholed'. Lfilled 0 lholed' [TailCallcl cl] (cs1 @ cs2 @ ($* es))"
+    proof (cases rule: Lfilled.cases)
+      case (L0 vs es')
+      thus ?thesis
+        using Lfilled.intros(1)[of "cs1 @ vs" _ "es'" "[TailCallcl cl]"] cs_def(4)
+        unfolding const_list_def
+        by fastforce
+    qed simp
+    thus False
+      using weakening(6) cs_def(3)
+      by simp
   qed
   hence "\<exists>a s' vs' es'. \<lparr>s;vs;cs2@($*es)\<rparr> \<leadsto>_i \<lparr>s';vs';es'\<rparr>"
-    using weakening(2)[OF cs_def(2) _ _ cs_def(5) weakening(7)] weakening(8-)
+    using weakening(2)[OF cs_def(2) _ _ _ cs_def(5) weakening(8)] weakening(9-)
     by fastforce
   thus ?case
     using progress_L0[OF _ cs_def(4), of s vs "cs2 @ ($* es)" i _ _ _ "[]"] cs_def(3)
@@ -3353,7 +3382,7 @@ proof -
       using e_type_comp_conc1[of \<S> \<C> cs "($* b_es)" "[]" "ts'"] unlift_b_e
       by (metis e_type_const_conv_vs typing_map_typeof)
     then show ?case
-      using progress_b_e[OF _ 1(5) _ _ 1(4)] 1(3,4,9) list_all_append 1
+      using progress_b_e[OF _ 1(5) _ _ _ 1(4)] 1(3,4,9) list_all_append 1
       unfolding const_list_def
       by fastforce
   next
