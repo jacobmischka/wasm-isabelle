@@ -782,6 +782,7 @@ lemma e_type_tail_callcl:
   assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t31s _> t4s)"
   shows "\<exists>t3s' t1s' t2s'. t31s = t3s' @ t1s'  
               \<and> cl_type cl = (t1s' _> t2s')
+              \<and> cl_typing \<S> cl (t1s' _> t2s')
               \<and> (return \<C>) = Some t2s'"
   using assms
 proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t31s _> t4s)" arbitrary: t31s t4s)
