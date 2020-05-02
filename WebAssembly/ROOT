@@ -9,7 +9,7 @@ session WebAssembly (AFP) = "HOL-Library" +
   theories
     "Wasm_Soundness"
     "Wasm_Checker_Properties"
-   (* "Wasm_Interpreter_Properties" *)
+    "Wasm_Interpreter_Properties"
   theories [document = false]
     "Wasm_Printing/Wasm_Printing"
     "Wasm_Printing/Wasm_Interpreter_Printing_Pure"

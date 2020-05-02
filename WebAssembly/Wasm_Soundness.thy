@@ -26,7 +26,7 @@ proof -
     using assms config_typing.simps
     by blast
   thus ?thesis
-    using progress_e3
+    using progress_e4
     by blast
 qed
 
