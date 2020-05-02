@@ -3347,7 +3347,7 @@ proof -
        \<not> const_list (cs_es) \<Longrightarrow>
        store_typing s \<S> \<Longrightarrow>
          \<exists>a s' vs' cs_es'. \<lparr>s;vs;cs_es\<rparr> \<leadsto>_i \<lparr>s';vs';cs_es'\<rparr>"
-  proof (induction arbitrary: vs ts_c ts' i cl cs_es cs rule: e_typing_s_typing.inducts)
+  proof (induction arbitrary: vs ts_c ts' i cs_es cs rule: e_typing_s_typing.inducts)
     case (1 \<C> b_es tf \<S>)
     hence "\<C> \<turnstile> b_es : (ts_c _> ts')"
       using e_type_comp_conc1[of \<S> \<C> cs "($* b_es)" "[]" "ts'"] unlift_b_e
@@ -3671,9 +3671,27 @@ proof -
         using vs_def(3,4) 6(3) progress_L0
         by fastforce
     qed
- next
-   case (7 \<S> cl tf \<C>)
+  next
+  case (7 \<S> cl t1 t2 \<C>)
    print_statement 7
+    obtain ts'' where ts''_def:"\<S>\<bullet>\<C> \<turnstile> cs : ([] _> ts'')" "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (ts'' _> ts')"
+      using 7(3,4) e_type_comp_conc1
+      by fastforce
+    then obtain t3s t1s t2s where cl_def:"ts'' = t3s @ t1s"
+                                         "cl_type cl = (t1s _> t2s)" 
+                                         "(return \<C>) = Some t2s"
+      using e_type_tail_callcl[OF ts''_def(2)]
+      by fastforce
+    obtain vs1 vs2 where vs_def:"\<S>\<bullet>\<C> \<turnstile> vs1 : ([] _> t3s)"
+                                "\<S>\<bullet>\<C> \<turnstile> vs2 : (t3s _> t3s @ t1s)"
+                                "cs = vs1 @ vs2"
+                                "const_list vs1"
+                                "const_list vs2"
+      using e_type_const_list_cons[OF 7(5)] ts''_def(1) cl_def(1)
+      by fastforce
+    have l:"(length vs2) = (length t1s)"
+      using e_type_const_list vs_def(2,5)
+      by fastforce
    show ?case
      sorry
   next
