@@ -3701,28 +3701,10 @@ proof -
         by fastforce
     qed
   next
-  case (7 \<S> cl t1 t2 \<C>)
-   print_statement 7
-    obtain ts'' where ts''_def:"\<S>\<bullet>\<C> \<turnstile> cs : ([] _> ts'')" "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (ts'' _> ts')"
-      using 7(3,4) e_type_comp_conc1
+    case (7 \<S> cl t1 t2 \<C>)
+    thus ?case
+      using Lfilled.intros(1)[OF 7(5), of _ "[]" "[TailCallcl cl]"]
       by fastforce
-    then obtain t3s t1s t2s where cl_def:"ts'' = t3s @ t1s"
-                                         "cl_type cl = (t1s _> t2s)" 
-                                         "(return \<C>) = Some t2s"
-      using e_type_tail_callcl[OF ts''_def(2)]
-      by fastforce
-    obtain vs1 vs2 where vs_def:"\<S>\<bullet>\<C> \<turnstile> vs1 : ([] _> t3s)"
-                                "\<S>\<bullet>\<C> \<turnstile> vs2 : (t3s _> t3s @ t1s)"
-                                "cs = vs1 @ vs2"
-                                "const_list vs1"
-                                "const_list vs2"
-      using e_type_const_list_cons[OF 7(5)] ts''_def(1) cl_def(1)
-      by fastforce
-    have l:"(length vs2) = (length t1s)"
-      using e_type_const_list vs_def(2,5)
-      by fastforce
-   show ?case
-     sorry
   next
     case (8 \<S> \<C> e0s ts t2s es n)
     consider (1) "(\<And>k lholed. \<not> Lfilled k lholed [$Return] es)"
