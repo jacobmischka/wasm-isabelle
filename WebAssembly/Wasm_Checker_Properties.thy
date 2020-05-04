@@ -713,42 +713,51 @@ proof -
       by fastforce
   next
     case (28 \<C> i ts)
-    obtain tn'' tm'' where func_def:"(func_t \<C>)!i = (tn'' _> tm'')"
-      using tf.exhaust
-      by blast
-    hence "type_update ts (to_ct_list tn'') (Type tm'') = tm'"
-      using 28
-      by auto
-    moreover
-    have "i < length (func_t \<C>)"
+    then have length_def:"i < length (func_t \<C>)"
       using 28
       by (simp, meson)
-    hence "\<C> \<turnstile> [ReturnCall i] : (tn'' _> tm'')"
-      using b_e_typing.intros(26) func_def
+    then obtain ts_r where return_def:"(return \<C>) = Some ts_r"
+      using 28
       by fastforce
+    then obtain tn'' tm'' where func_def:"(func_t \<C>)!i = (tn'' _> tm'')"
+      using tf.exhaust 28 return_def length_def
+      by (simp, meson)
+    hence "tm'' = ts_r"
+      using 28 length_def return_def
+      by (simp, meson)
+    moreover
+    hence "type_update ts (to_ct_list tn'') (TopType []) = tm'"
+      using 28 return_def func_def length_def
+      by simp
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 28(3,4,2)]
-      by fastforce
+      using b_e_check_single_top_not_bot_sound[OF _ 28(3,4)]
+            b_e_typing.intros(26,37) return_def func_def length_def
+      by (metis suffix_def)
   next
     case (29 \<C> i ts)
     obtain tn'' tm'' where type_def:"(types_t \<C>)!i = (tn'' _> tm'')"
       using tf.exhaust
       by blast
-    hence "type_update ts (to_ct_list (tn''@[T_i32])) (Type tm'') = tm'"
-      using 29
-      by auto
     moreover
-    have "(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
+    have length_def:"(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
       using 29
       by (simp, meson)
-    hence "\<C> \<turnstile> [ReturnCall_indirect i] : (tn''@[T_i32] _> tm'')"
-      using b_e_typing.intros(27) type_def
+    then obtain ts_r where return_def:"(return \<C>) = Some ts_r"
+      using 29
       by fastforce
+    hence "tm'' = ts_r"
+      using 29 length_def return_def type_def
+      by (simp, meson)
+    moreover
+    hence "type_update ts (to_ct_list (tn''@[T_i32])) (TopType []) = tm'"
+      using 29 length_def type_def return_def
+      by auto
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 29(3,4,2)]
-      by fastforce
+      using b_e_check_single_top_not_bot_sound[OF _ 29(3,4)]
+            b_e_typing.intros(27,37) return_def length_def type_def
+      by (metis suffix_def)
   next
     case (30 \<C> i ts)
     hence "type_update ts [] (Type [(local \<C>)!i]) = tm'"
@@ -1020,7 +1029,7 @@ proof -
       by (simp, metis assms(2) option.case_eq_if type_update.simps)
   next
     case (26 \<C> i ts)
-    then show ?case
+    thus ?case
       by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (27 \<C> i ts)
@@ -1028,12 +1037,12 @@ proof -
       by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (28 \<C> i ts)
-    then show ?case
-      by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
+    thus ?case
+      by (simp, metis (no_types, lifting) assms(2) option.case_eq_if tf.case tf.exhaust type_update.simps)
   next
     case (29 \<C> i ts)
     thus ?case
-      by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
+      by (simp, metis (no_types, lifting) assms(2) option.case_eq_if tf.case tf.exhaust type_update.simps)
   next
     case (30 \<C> i ts)
     thus ?case
@@ -1706,6 +1715,12 @@ lemma b_e_type_checker_complete:
   shows "b_e_type_checker \<C> es (tn _> tm)"
   using assms
 proof (induction es "(tn _> tm)" arbitrary: tn tm rule: b_e_typing.induct)
+  case (return_call i \<C> t1s t2s t3s t4s)
+  then show ?case sorry
+next
+  case (return_call_indirect i \<C> t1s t2s t3s t4s)
+  then show ?case sorry
+next
   case (select \<C> t)
   have "ct_list_eq [TAny, TSome T_i32] [TSome t, TSome T_i32]"
     by (simp add: to_ct_list_def ct_list_eq_def)
