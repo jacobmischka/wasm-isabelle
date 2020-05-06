@@ -161,21 +161,17 @@ foldl_Cons: "foldl f a (x # xs) = foldl f (f a x) xs"
                                             else Bot)"
   (* return_call *)
 | "check_single \<C> (ReturnCall i) ts = (if i < length (func_t \<C>)
-                                  then case (return \<C>) of
-                                   None \<Rightarrow> Bot
-                                 | Some tls \<Rightarrow> (case ((func_t \<C>)!i) of
-                                                    (tn _> tm) \<Rightarrow> (if tm = tls
-                                                           then type_update ts (to_ct_list tn) (TopType [])
-                                                           else Bot))
-                                                  else Bot)"
+                                  then case ((func_t \<C>)!i) of
+                                      (tn _> tm) \<Rightarrow> (if (return \<C>) = Some tm
+                                                       then type_update ts (to_ct_list tn) (TopType [])
+                                                       else Bot)
+                                  else Bot)"
   (* return_call_indirect *)
 | "check_single \<C> (ReturnCall_indirect i) ts = (if (table \<C>) \<noteq> None \<and> i < length (types_t \<C>)
-                                  then case (return \<C>) of
-                                   None \<Rightarrow> Bot
-                                 | Some tls \<Rightarrow> (case ((types_t \<C>)!i) of
-                                                    (tn _> tm) \<Rightarrow> (if tm = tls
-                                                        then type_update ts (to_ct_list (tn@[T_i32])) (TopType [])
-                                                        else Bot))
+                                  then case ((types_t \<C>)!i) of
+                                      (tn _> tm) \<Rightarrow> (if (return \<C>) = Some tm
+                                                          then type_update ts (to_ct_list (tn@[T_i32])) (TopType [])
+                                                          else Bot)
                                    else Bot)"
   (* get_local *)
 | "check_single \<C> (Get_local i) ts = (if i < length (local \<C>)

@@ -716,14 +716,11 @@ proof -
     then have length_def:"i < length (func_t \<C>)"
       using 28
       by (simp, meson)
-    then obtain ts_r where return_def:"(return \<C>) = Some ts_r"
-      using 28
-      by fastforce
     then obtain tn'' tm'' where func_def:"(func_t \<C>)!i = (tn'' _> tm'')"
-      using tf.exhaust 28 return_def length_def
+      using tf.exhaust 28 length_def
       by (simp, meson)
-    hence "tm'' = ts_r"
-      using 28 length_def return_def
+    hence return_def:"(return \<C>) = Some tm''"
+      using 28 length_def
       by (simp, meson)
     moreover
     hence "type_update ts (to_ct_list tn'') (TopType []) = tm'"
@@ -743,11 +740,8 @@ proof -
     have length_def:"(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
       using 29
       by (simp, meson)
-    then obtain ts_r where return_def:"(return \<C>) = Some ts_r"
-      using 29
-      by fastforce
-    hence "tm'' = ts_r"
-      using 29 length_def return_def type_def
+    hence return_def:"(return \<C>) = Some tm''"
+      using 29 type_def
       by (simp, meson)
     moreover
     hence "type_update ts (to_ct_list (tn''@[T_i32])) (TopType []) = tm'"
