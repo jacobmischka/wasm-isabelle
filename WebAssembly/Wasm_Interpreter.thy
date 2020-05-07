@@ -16,6 +16,7 @@ datatype res_step =
 | RSBreak nat "v list"
 | RSReturn "v list"
 | RSNormal "e list"
+| RSTailInvoke "v list" cl
 
 abbreviation crash_error where "crash_error \<equiv> RSCrash CError"
 
@@ -521,9 +522,7 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                let m = length t2s in
                if length ves \<ge> n
                  then
-                   let (ves', ves'') = split_n ves n in
-                   let zs = n_zeros ts in
-                     (s, vs, RSNormal ((vs_to_es ves'') @ ([Local m i' ((rev ves')@zs) [$(Block ([] _> t2s) es)]])))
+                   (s, vs, RSTailInvoke ves cl)
                  else
                    (s, vs, crash_error)
            | Func_host (t1s _> t2s) f \<Rightarrow>
@@ -531,15 +530,7 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                let m = length t2s in
                if length ves \<ge> n
                  then
-                   let (ves', ves'') = split_n ves n in
-                   case host_apply_impl s (t1s _> t2s) f (rev ves') of
-                     Some (s',rves) \<Rightarrow> 
-                       if list_all2 types_agree t2s rves
-                         then
-                           (s', vs, RSNormal ((vs_to_es ves'') @ ($$* rves)))
-                         else
-                           (s', vs, crash_error)
-                   | None \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves'')@[Trap]))
+                   (s, vs, RSTailInvoke ves cl)
                  else
                    (s, vs, crash_error))
       \<comment> \<open>\<open>LABEL\<close>\<close>
@@ -562,6 +553,8 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                          (s', vs', RSBreak n bvs)
                      | RSReturn rvs \<Rightarrow>
                          (s', vs', RSReturn rvs)
+                     | RSTailInvoke rvs cl \<Rightarrow>
+                         (s', vs', RSTailInvoke rvs cl)
                      | RSNormal es' \<Rightarrow>
                          (s', vs', RSNormal ((vs_to_es ves)@[Label ln les es']))
                      | _ \<Rightarrow> (s', vs', crash_error)))
