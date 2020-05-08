@@ -1939,12 +1939,15 @@ proof -
       proof (cases cl)
         case (Func_native x11 x12 x13 x14)
         thus ?thesis
-          using assms cl_type_is
+          using assms cl_type_is 2(3) a
           unfolding cl_type_def
           by (cases "length t1s \<le> length ves") auto
       next
         case (Func_host x21 x22)
-        then show ?thesis sorry
+        then show ?thesis
+          using assms cl_type_is 2(3) a
+          unfolding cl_type_def
+          by (cases "length t1s \<le> length ves") auto
       qed
     next
       case b
