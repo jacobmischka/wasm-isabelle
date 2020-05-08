@@ -1031,12 +1031,41 @@ proof -
       by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (28 \<C> i ts)
+    then have length_def:"i < length (func_t \<C>)"
+      using assms(2)
+      by (simp, meson)
+    then obtain tn'' tm'' where func_def:"(func_t \<C>)!i = (tn'' _> tm'')"
+      using tf.exhaust 28 length_def
+      by (simp, meson)
+    hence return_def:"(return \<C>) = Some tm''"
+      using assms(2) length_def 28
+      by (simp, meson)
+    moreover
+    hence "check_single \<C> (ReturnCall i) ctn = (type_update ctn (to_ct_list tn'') (TopType []))"
+      using 28(1) return_def func_def length_def assms(2)
+      by simp
     thus ?case
-      by (simp, metis (no_types, lifting) assms(2) option.case_eq_if tf.case tf.exhaust type_update.simps)
+      using 28(1) return_def func_def length_def assms(2)
+      by (simp, metis)
   next
     case (29 \<C> i ts)
+    obtain tn'' tm'' where type_def:"(types_t \<C>)!i = (tn'' _> tm'')"
+      using tf.exhaust
+      by blast
+    moreover
+    have length_def:"(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
+      using assms(2) 29
+      by (simp, meson)
+    hence return_def:"(return \<C>) = Some tm''"
+      using 29 type_def assms(2)
+      by (simp, meson)
+    moreover
+    hence "check_single \<C> (ReturnCall_indirect i) ctn = type_update ctn (to_ct_list (tn''@[T_i32])) (TopType [])"
+      using 29 length_def type_def return_def assms(2)
+      by auto
     thus ?case
-      by (simp, metis (no_types, lifting) assms(2) option.case_eq_if tf.case tf.exhaust type_update.simps)
+      using 29(1) return_def length_def assms(2) type_def
+      by (simp, metis)
   next
     case (30 \<C> i ts)
     thus ?case
