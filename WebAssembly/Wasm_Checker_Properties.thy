@@ -1709,12 +1709,6 @@ lemma b_e_type_checker_complete:
   shows "b_e_type_checker \<C> es (tn _> tm)"
   using assms
 proof (induction es "(tn _> tm)" arbitrary: tn tm rule: b_e_typing.induct)
-  case (return_call i \<C> t1s t2s t3s t4s)
-  then show ?case sorry
-next
-  case (return_call_indirect i \<C> t1s t2s t3s t4s)
-  then show ?case sorry
-next
   case (select \<C> t)
   have "ct_list_eq [TAny, TSome T_i32] [TSome t, TSome T_i32]"
     by (simp add: to_ct_list_def ct_list_eq_def)
