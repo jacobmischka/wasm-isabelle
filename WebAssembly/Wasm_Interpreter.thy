@@ -579,6 +579,11 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                              if (length rvs \<ge> ln)
                                then (s', vs, RSNormal (vs_to_es ((take ln rvs)@ves)))
                                else (s', vs, crash_error)
+                          \<comment> \<open>\<open>FIXME\<close>\<close>
+                         | RSTailInvoke rvs cl \<Rightarrow>
+                             if (length rvs \<ge> ln)
+                               then (s', vs, RSNormal ((vs_to_es ((take ln rvs)@ves))@[Callcl cl]))
+                               else (s', vs, crash_error)
                          | RSNormal es' \<Rightarrow>
                              (s', vs, RSNormal ((vs_to_es ves)@[Local ln j vls' es']))
                          | _ \<Rightarrow> (s', vs, RSCrash CExhaustion)))

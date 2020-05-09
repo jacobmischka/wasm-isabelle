@@ -928,6 +928,11 @@ proof (cases "x54 = [Trap]")
         thus ?thesis
           using assms outer_False False rs_def Suc
           by (cases "x51 \<le> length x3") auto
+      next 
+        case (RSTailInvoke x41 x42)
+        thus ?thesis
+          using assms outer_False False rs_def Suc
+          by (cases "x51 \<le> length x41") auto
       qed auto
     qed auto
   qed
@@ -3003,7 +3008,7 @@ proof -
                 by (auto simp del: run_step.simps)
             next
               case (RSTailInvoke x51 x52)
-              hence es'_def:"es' = (vs_to_es ((take ln x51)@ves)) \<and> s' = s'' \<and> vs = vs' \<and> ln \<le> length x51"
+              hence es'_def:"es' = (vs_to_es ((take ln x51)@ves))@[Callcl x52] \<and> s' = s'' \<and> vs = vs' \<and> ln \<le> length x51"
                 using outer_outer_false False run_step_is Local 2(3) Suc
                 by (cases "ln \<le> length x51") auto
               then obtain n lfilled es_c where local_eqs:"s=s'" "vs=vs'" "ln \<le> length x51" "Lfilled_exact n lfilled ((vs_to_es x51) @ [TailCallcl x52] @ es_c) es"
@@ -3015,13 +3020,18 @@ proof -
               obtain t1s t2s where cl_type_is:"cl_type x52 = (t1s _> t2s)"
                 using tf.exhaust
                 by blast
-              obtain m where m_def:"length t2s = m"
-                by fastforce
-              obtain lfilled'' where "Lfilled n lfilled'' ((drop (length x51 - ln) (vs_to_es x51)) @ [TailCallcl x52]) es"
+              obtain lfilled'' where lfilled''_def:"Lfilled n lfilled'' ((drop (length x51 - ln) (vs_to_es x51)) @ [TailCallcl x52]) es"
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x51"] local_eqs(3)
                 by fastforce
+              obtain vcs where vcs_def:"(drop (length x51 - ln) (vs_to_es x51)) = $$* vcs"
+                using drop_map
+                by blast
+              have t1s_vcs_len: "length t1s = length vcs"
+                sorry
+              have t2s_len:"length t2s = ln"
+                sorry
               hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x51 - ln) (vs_to_es x51))@[Callcl x52]\<rparr>"
-                using reduce.intros(11) local_eqs(3) is_const_list_vs_to_es_list cl_type_is m_def
+                using tail_callcl local_eqs(1-3) cl_type_is t2s_len lfilled''_def t1s_vcs_len vcs_def
                 by fastforce
               have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@(drop (length x51 - ln) (vs_to_es x51)@[Callcl x52])\<rparr>"
                 using progress_L0[OF 1 is_const_list_vs_to_es_list[of "rev ves"], of "[]"] Local
