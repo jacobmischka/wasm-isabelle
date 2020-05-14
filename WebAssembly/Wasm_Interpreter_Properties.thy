@@ -879,19 +879,8 @@ proof -
     using tf.exhaust
     by blast
   show ?thesis
-  proof (cases cl)
-    case (Func_native x11 x12 x13 x14)
-    thus ?thesis
-      using assms cl_type_is
-      unfolding cl_type_def
-      by (cases "length t1s \<le> length ves") auto
-  next
-    case (Func_host x21 x22)
-    show ?thesis
-      using assms cl_type_is Func_host
-      unfolding cl_type_def
-      by (cases "length t1s \<le> length ves")  auto
-  qed
+    using assms cl_type_is
+    by (cases "length t1s \<le> length ves") auto
 qed
 
 lemma run_one_step_label_result:
@@ -930,9 +919,12 @@ proof (cases "x54 = [Trap]")
           by (cases "x51 \<le> length x3") auto
       next 
         case (RSTailInvoke x41 x42)
+        obtain t1s t2s where cl_type_is:"cl_type x42 = (t1s _> t2s)"
+        using tf.exhaust
+        by blast
         thus ?thesis
-          using assms outer_False False rs_def Suc
-          by (cases "x51 \<le> length x41") auto
+          using assms outer_False False rs_def Suc cl_type_is
+          by (cases "x51 = length t2s \<and> length x41 \<ge> length t1s") auto
       qed auto
     qed auto
   qed
@@ -1941,19 +1933,8 @@ proof -
         using tf.exhaust
         by blast
       thus ?thesis
-      proof (cases cl)
-        case (Func_native x11 x12 x13 x14)
-        thus ?thesis
-          using assms cl_type_is 2(3) a
-          unfolding cl_type_def
-          by (cases "length t1s \<le> length ves") auto
-      next
-        case (Func_host x21 x22)
-        then show ?thesis
-          using assms cl_type_is 2(3) a
-          unfolding cl_type_def
-          by (cases "length t1s \<le> length ves") auto
-      qed
+        using assms cl_type_is 2(3) a
+        by (cases "length t1s \<le> length ves") auto
     next
       case b
       then obtain n les es where e_def:"e = Label n les es"
@@ -3008,18 +2989,18 @@ proof -
                 by (auto simp del: run_step.simps)
             next
               case (RSTailInvoke x51 x52)
-              hence es'_def:"es' = (vs_to_es ((take ln x51)@ves))@[Callcl x52] \<and> s' = s'' \<and> vs = vs' \<and> ln \<le> length x51"
-                using outer_outer_false False run_step_is Local 2(3) Suc
+              obtain t1s t2s where cl_type_is:"cl_type x52 = (t1s _> t2s)"
+                using tf.exhaust
+                by blast
+              hence es'_def:"es' = (vs_to_es ((take ln x51)@ves))@[Callcl x52] \<and> s' = s'' \<and> vs = vs' \<and> length x51 \<ge> length t1s \<and> ln = length t2s"
+                using outer_outer_false False run_step_is Local 2(3) Suc cl_type_is
                 by (cases "ln \<le> length x51") auto
-              then obtain n lfilled es_c where local_eqs:"s=s'" "vs=vs'" "ln \<le> length x51" "Lfilled_exact n lfilled ((vs_to_es x51) @ [TailCallcl x52] @ es_c) es"
+              then obtain n lfilled es_c where local_eqs:"s=s'" "vs=vs'" "length t1s \<le> length x51" "Lfilled_exact n lfilled ((vs_to_es x51) @ [TailCallcl x52] @ es_c) es"
                 using run_step_is run_step_tail_callcl_imp_lfilled RSTailInvoke
                 by fastforce
               then obtain lfilled' where lfilled_int:"Lfilled n lfilled' ((vs_to_es x51) @ [TailCallcl x52]) es"
                 using lfilled_collapse2[OF Lfilled_exact_imp_Lfilled]
                 by fastforce
-              obtain t1s t2s where cl_type_is:"cl_type x52 = (t1s _> t2s)"
-                using tf.exhaust
-                by blast
               obtain lfilled'' where lfilled''_def:"Lfilled n lfilled'' ((drop (length x51 - ln) (vs_to_es x51)) @ [TailCallcl x52]) es"
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x51"] local_eqs(3)
                 by fastforce
@@ -3029,7 +3010,8 @@ proof -
               have t1s_vcs_len: "length t1s = length vcs"
                 sorry
               have t2s_len:"length t2s = ln"
-                sorry
+                using es'_def
+                by blast
               hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x51 - ln) (vs_to_es x51))@[Callcl x52]\<rparr>"
                 using tail_callcl local_eqs(1-3) cl_type_is t2s_len lfilled''_def t1s_vcs_len vcs_def
                 by fastforce
