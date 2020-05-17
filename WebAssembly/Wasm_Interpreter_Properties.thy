@@ -923,8 +923,8 @@ proof (cases "x54 = [Trap]")
         using tf.exhaust
         by blast
         thus ?thesis
-          using assms outer_False False rs_def Suc cl_type_is
-          by (cases "x51 = length t2s \<and> length x41 \<ge> length t1s") auto
+          using assms outer_False False rs_def Suc RSTailInvoke
+          by (cases "length x41 \<ge> length t1s \<and> x51 = length t2s") auto
       qed auto
     qed auto
   qed
@@ -2992,30 +2992,28 @@ proof -
               obtain t1s t2s where cl_type_is:"cl_type x52 = (t1s _> t2s)"
                 using tf.exhaust
                 by blast
-              hence es'_def:"es' = (vs_to_es ((take ln x51)@ves))@[Callcl x52] \<and> s' = s'' \<and> vs = vs' \<and> length x51 \<ge> length t1s \<and> ln = length t2s"
-                using outer_outer_false False run_step_is Local 2(3) Suc cl_type_is
-                by (cases "ln \<le> length x51") auto
-              then obtain n lfilled es_c where local_eqs:"s=s'" "vs=vs'" "length t1s \<le> length x51" "Lfilled_exact n lfilled ((vs_to_es x51) @ [TailCallcl x52] @ es_c) es"
+              hence es'_def:"es' = (vs_to_es ((take (length t1s) x51)@ves))@[Callcl x52] \<and> s' = s'' \<and> vs = vs' \<and> length x51 \<ge> length t1s \<and> ln = length t2s"
+                using outer_outer_false False run_step_is Local 2(3) Suc RSTailInvoke
+                by (cases "length x51 \<ge> length t1s \<and> ln = length t2s") auto
+              then obtain m lfilled es_c where local_eqs:"s=s'" "vs=vs'" "length t1s \<le> length x51" "Lfilled_exact m lfilled ((vs_to_es x51) @ [TailCallcl x52] @ es_c) es"
                 using run_step_is run_step_tail_callcl_imp_lfilled RSTailInvoke
                 by fastforce
-              then obtain lfilled' where lfilled_int:"Lfilled n lfilled' ((vs_to_es x51) @ [TailCallcl x52]) es"
+              then obtain lfilled' where lfilled_int:"Lfilled m lfilled' ((vs_to_es x51) @ [TailCallcl x52]) es"
                 using lfilled_collapse2[OF Lfilled_exact_imp_Lfilled]
                 by fastforce
-              obtain lfilled'' where lfilled''_def:"Lfilled n lfilled'' ((drop (length x51 - ln) (vs_to_es x51)) @ [TailCallcl x52]) es"
+              obtain lfilled'' where lfilled''_def:"Lfilled m lfilled'' ((drop (length x51 - length t1s) (vs_to_es x51)) @ [TailCallcl x52]) es"
                 using lfilled_collapse1[OF lfilled_int] is_const_list_vs_to_es_list[of "rev x51"] local_eqs(3)
                 by fastforce
-              obtain vcs where vcs_def:"(drop (length x51 - ln) (vs_to_es x51)) = $$* vcs"
+              obtain vcs where vcs_def:"(drop (length x51 - length t1s) (vs_to_es x51)) = $$* vcs"
                 using drop_map
                 by blast
-              have t1s_vcs_len: "length t1s = length vcs"
-                sorry
-              have t2s_len:"length t2s = ln"
-                using es'_def
-                by blast
-              hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x51 - ln) (vs_to_es x51))@[Callcl x52]\<rparr>"
-                using tail_callcl local_eqs(1-3) cl_type_is t2s_len lfilled''_def t1s_vcs_len vcs_def
+              hence t1s_vcs_len: "length t1s = length vcs"
+                using diff_diff_cancel length_drop length_map length_rev local_eqs(3)
+                by (metis (no_types))
+              hence 1:"\<lparr>s;vs;[Local ln j vls es]\<rparr> \<leadsto>_i \<lparr>s';vs';(drop (length x51 - length t1s) (vs_to_es x51))@[Callcl x52]\<rparr>"
+                using tail_callcl local_eqs(1-3) cl_type_is lfilled''_def vcs_def es'_def
                 by fastforce
-              have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@(drop (length x51 - ln) (vs_to_es x51)@[Callcl x52])\<rparr>"
+              have "\<lparr>s;vs;(vs_to_es ves)@[e]\<rparr> \<leadsto>_i \<lparr>s';vs';(vs_to_es ves)@((drop (length x51 - length t1s) (vs_to_es x51))@[Callcl x52])\<rparr>"
                 using progress_L0[OF 1 is_const_list_vs_to_es_list[of "rev ves"], of "[]"] Local
                 by fastforce
               thus ?thesis

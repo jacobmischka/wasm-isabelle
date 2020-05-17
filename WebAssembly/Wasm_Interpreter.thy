@@ -576,8 +576,8 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                              (t1s _> t2s) \<Rightarrow>
                                let n = length t1s in
                                let m = length t2s in
-                               if length rvs \<ge> n \<and> ln = m
-                                 then (s', vs, RSNormal ((vs_to_es ves)@(vs_to_es (take ln rvs))@[Callcl cl]))
+                               if (length rvs \<ge> n \<and> ln = m)
+                                 then (s', vs, RSNormal (vs_to_es ((take n rvs)@ves)@[Callcl cl]))
                                else (s', vs, crash_error))
                          | RSNormal es' \<Rightarrow>
                              (s', vs, RSNormal ((vs_to_es ves)@[Local ln j vls' es']))
