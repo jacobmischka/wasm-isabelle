@@ -9,7 +9,7 @@ lemma b_e_check_single_type_sound:
           "c_types_agree (Type x2) tm"
           "\<C> \<turnstile> [e] : (t_in _> t_out)"
   shows "\<exists>tn. c_types_agree (Type x1) tn \<and> \<C> \<turnstile> [e] : (tn _> tm)"
-  using assms(2) b_e_typing.intros(35)[OF assms(3)] type_update_type[OF assms(1)]
+  using assms(2) b_e_typing.intros(36)[OF assms(3)] type_update_type[OF assms(1)]
   by auto
 
 lemma b_e_check_single_top_sound:
@@ -24,7 +24,7 @@ proof -
     using type_update_top_top[OF assms(1,2)]
     by fastforce
   hence "\<C> \<turnstile> [e] : (t_ag@t_in _> t_ag@t_out)"
-    using b_e_typing.intros(35)[OF assms(3)]
+    using b_e_typing.intros(36)[OF assms(3)]
     by fastforce
   thus ?thesis
     using t_ag_def
@@ -67,7 +67,7 @@ lemma b_e_check_single_type_not_bot_sound:
           "c_types_agree ts' tm"
           "\<C> \<turnstile> [e] : (t_in _> t_out)"
   shows "\<exists>tn. c_types_agree ts tn \<and> \<C> \<turnstile> [e] : (tn _> tm)"
-  using assms b_e_check_single_type_sound 
+  using assms b_e_check_single_type_sound
 proof (cases ts)
   case (TopType x1)
   then obtain x1' where x_def:"TopType x1' = ts'"
@@ -96,6 +96,7 @@ lemma b_e_check_single_sound_unop_testop_cvtop:
           "((e = (Unop_i t uu) \<or> e = (Testop t uv)) \<and> is_int_t t)
            \<or> (e = (Unop_f t uw) \<and> is_float_t t)
            \<or> (e = (Cvtop t1 Convert t sx) \<and> convert_cond t1 t sx)
+           \<or> (e = (Cvtop t1 ConvertSat t sx) \<and> convert_cond t1 t sx)
            \<or> (e = (Cvtop t1 Reinterpret t sx) \<and> ((t1 \<noteq> t) \<and> t_length t1 = t_length t \<and> sx = None))"
           "c_types_agree tm' tm"
           "tn' \<noteq> Bot"
@@ -108,17 +109,23 @@ proof -
   hence temp0:"(e = (Cvtop t1 Convert t sx)) \<Longrightarrow> (type_update tn' [TSome t] (Type [arity_1_result e]) = tm')"
     using assms(1,5) arity_1_result_def
     by (simp del: convert_cond.simps)
-  have temp1:"(e = (Cvtop t1 Reinterpret t sx)) \<Longrightarrow> (type_update tn' [TSome t] (Type [arity_1_result e]) = tm')"
+  have "(e = (Cvtop t1 ConvertSat t sx) \<Longrightarrow> convert_cond t1 t sx)"
+    using assms(2)
+    by simp
+  hence temp1:"(e = (Cvtop t1 ConvertSat t sx)) \<Longrightarrow> (type_update tn' [TSome t] (Type [arity_1_result e]) = tm')"
+    using assms(1,5) arity_1_result_def
+    by (simp del: convert_cond.simps)
+  have temp2:"(e = (Cvtop t1 Reinterpret t sx)) \<Longrightarrow> (type_update tn' [TSome t] (Type [arity_1_result e]) = tm')"
     using assms(1,2,5) arity_1_result_def
     by simp
   have 1:"type_update tn' (to_ct_list [t]) (Type [arity_1_result e]) = tm'"
     using assms arity_1_result_def
     unfolding to_ct_list_def
     apply (simp del: convert_cond.simps)
-    apply (metis (no_types, lifting) temp0 temp1 b_e.simps(978,979,982) check_single.simps(2) check_single.simps(3) check_single.simps(6) type_update.simps)
+    apply (metis (no_types, lifting) temp0 temp1 temp2 b_e.simps(978,979,982) check_single.simps(2) check_single.simps(3) check_single.simps(6) type_update.simps)
     done
   have "\<C> \<turnstile> [e] : ([t] _> [arity_1_result e])"
-    using assms(2) b_e_typing.intros(2,3,6,9,10)
+    using assms(2) b_e_typing.intros(2,3,6,9,10,11)
     unfolding arity_1_result_def
     by fastforce
   thus ?thesis
@@ -151,6 +158,10 @@ proof -
     using b_e_check_single_type_not_bot_sound[OF _ assms(4,5,3)]
     by fastforce
 qed
+
+
+print_statement b_e_type_checker_check_check_single.induct
+print_statement b_e_typing.intros
 
 lemma b_e_type_checker_sound:
   assumes "b_e_type_checker \<C> es (tn _> tm)"
@@ -295,23 +306,30 @@ proof -
       by fastforce
   next
     case (12 \<C> t1 t2 sx ts)
-    hence "t1 \<noteq> t2 \<and>  t_length t1 = t_length t2 \<and> sx = None"
-      by (simp, presburger)
+    hence "convert_cond t1 t2 sx"
+      by (simp del: convert_cond.simps, meson)
     thus ?case
       using b_e_check_single_sound_unop_testop_cvtop 12
       by fastforce
   next
-    case (13 \<C> ts)
+    case (13 \<C> t1 t2 sx ts)
+    hence "t1 \<noteq> t2 \<and>  t_length t1 = t_length t2 \<and> sx = None"
+      by (simp, presburger)
     thus ?case
-      using b_e_typing.intros(11) c_types_agree_not_bot_exists
-      by blast
+      using b_e_check_single_sound_unop_testop_cvtop 13
+      by fastforce
   next
     case (14 \<C> ts)
     thus ?case
-      using b_e_typing.intros(12,35)
-      by fastforce
+      using b_e_typing.intros(12) c_types_agree_not_bot_exists
+      by blast
   next
     case (15 \<C> ts)
+    thus ?case
+      using b_e_typing.intros(13,36)
+      by fastforce
+  next
+    case (16 \<C> ts)
     thus ?case
     proof (cases ts)
       case (TopType x1)
@@ -319,7 +337,7 @@ proof -
         proof (cases x1 rule: List.rev_cases)
           case Nil
           have "\<C> \<turnstile> [Drop] : (tm@[T_i32] _> tm)"
-            using b_e_typing.intros(13,35)
+            using b_e_typing.intros(14,36)
             by fastforce
           thus ?thesis
             using c_types_agree_top1 Nil TopType
@@ -327,10 +345,10 @@ proof -
         next
           case (snoc ys y)
             hence temp1:"(consume (TopType (ys@[y])) [TAny]) = tm'"
-              using 15 TopType type_update_empty
-              by (metis check_single.simps(13))
+              using 16 TopType type_update_empty
+              by (metis check_single.simps(14))
             hence temp2:"c_types_agree (TopType ys) tm"
-              using consume_top_geq[OF temp1] 15(2,3,4)
+              using consume_top_geq[OF temp1] 16(2,3,4)
               by (metis Suc_leI add_diff_cancel_right' append_eq_conv_conj consume.simps(2)
                         ct_suffix_def length_Cons length_append list.size(3) trans_le_add2
                         zero_less_Suc)
@@ -342,7 +360,7 @@ proof -
               using temp2 ct_suffix_extend_ct_list_eq snoc TopType
               by (simp add: to_ct_list_def)
             thus ?thesis
-              using b_e_typing.intros(13,35)
+              using b_e_typing.intros(14,36)
               by fastforce
         qed
     next
@@ -351,18 +369,18 @@ proof -
       proof (cases x2 rule: List.rev_cases)
         case Nil
         hence "(consume (Type []) [TAny]) = tm'"
-          using 15 Type type_update_empty
+          using 16 Type type_update_empty
           by fastforce
         thus ?thesis
-          using 15(4) ct_list_eq_def ct_suffix_def to_ct_list_def
+          using 16(4) ct_list_eq_def ct_suffix_def to_ct_list_def
           by simp
       next
         case (snoc ys y)
             hence temp1:"(consume (Type (ys@[y])) [TAny]) = tm'"
-              using 15 Type type_update_empty
-              by (metis check_single.simps(13))
+              using 16 Type type_update_empty
+              by (metis check_single.simps(14))
             hence temp2:"c_types_agree (Type ys) tm"
-              using 15(2,3,4) ct_suffix_def
+              using 16(2,3,4) ct_suffix_def
               by (simp, metis One_nat_def butlast_conv_take butlast_snoc c_types_agree.simps(1)
                               length_Cons list.size(3))
             obtain t where "ct_list_eq [TSome y] (to_ct_list [t])"
@@ -373,12 +391,12 @@ proof -
               using temp2 ct_suffix_extend_ct_list_eq snoc Type
               by (simp add: ct_list_eq_def to_ct_list_def)
             thus ?thesis
-              using b_e_typing.intros(13,35)
+              using b_e_typing.intros(14,36)
               by fastforce
       qed
     qed simp
   next
-    case (16 \<C> ts)
+    case (17 \<C> ts)
     thus ?case
     proof (cases ts)
       case (TopType x1)
@@ -392,51 +410,51 @@ proof -
       proof (cases)
         case 1
         hence "tm' = TopType [TAny]"
-          using TopType 16
+          using TopType 17
           by simp
         then obtain t'' tm'' where tm_def:"tm = tm''@[t'']"
-          using 16(2) ct_suffix_def
+          using 17(2) ct_suffix_def
           by (simp, metis Nil_is_append_conv append_butlast_last_id checker_type.inject(1)
                           ct_prefixI ct_prefix_nil(2) produce.simps(1) produce_nil)
         have "\<C> \<turnstile> [Select] : ([t'',t'',T_i32] _> [t''])"
-          using b_e_typing.intros(14)
+          using b_e_typing.intros(15)
           by blast
         thus ?thesis
-          using TopType 16 1 tm_def b_e_typing.intros(35) c_types_agree.simps(2) c_types_agree_top1
+          using TopType 17 1 tm_def b_e_typing.intros(36) c_types_agree.simps(2) c_types_agree_top1
           by fastforce
       next
         case 2
         have "type_update_select (TopType x1) = tm'"
-          using 16 TopType
+          using 17 TopType
           unfolding check_single.simps
           by simp
         hence x1_def:"ct_list_eq x1 [TSome T_i32]" "tm' = TopType [TAny]"
-          using type_update_select_length1[OF _ 2 16(4)]
+          using type_update_select_length1[OF _ 2 17(4)]
           by simp_all
         then obtain t'' tm'' where tm_def:"tm = tm''@[t'']"
-          using 16(2) ct_suffix_def
+          using 17(2) ct_suffix_def
           by (metis Nil_is_append_conv append_butlast_last_id c_types_agree.simps(2) ct_prefixI
                     ct_prefix_nil(2) list.simps(8) to_ct_list_def)
         have "c_types_agree (TopType x1) ((tm''@[t'',t''])@[T_i32])"
           using x1_def(1)
           by (metis c_types_agree_top2 list.simps(8,9) to_ct_list_def)
         thus ?thesis
-          using TopType b_e_typing.intros(14,35) tm_def
+          using TopType b_e_typing.intros(15,36) tm_def
           by auto
       next
         case 3
         have "type_update_select (TopType x1) = tm'"
-          using 16 TopType
+          using 17 TopType
           unfolding check_single.simps
           by simp
         then obtain ct1 ct2 where x1_def:"x1 = [ct1, ct2]"
                                          "ct_eq ct2 (TSome T_i32)"
                                          "tm' = TopType [ct1]"
-          using type_update_select_length2[OF _ 3 16(4)]
+          using type_update_select_length2[OF _ 3 17(4)]
           by blast
         then obtain t'' tm'' where tm_def:"tm = tm''@[t'']"
                                           "ct_list_eq [ct1] [(TSome t'')]"
-          using 16(2) c_types_agree_imp_ct_list_eq[of "[ct1]" tm]
+          using 17(2) c_types_agree_imp_ct_list_eq[of "[ct1]" tm]
           by (metis append_Nil2 append_butlast_last_id append_eq_append_conv_if append_eq_conv_conj
                     ct_list_eq_length diff_Suc_1 length_Cons length_butlast length_map
                     list.simps(8,9) list.size(3) nat.distinct(2) to_ct_list_def)
@@ -448,20 +466,20 @@ proof -
           using c_types_agree_top2
           by blast
         thus ?thesis
-          using TopType b_e_typing.intros(14,35) tm_def
+          using TopType b_e_typing.intros(15,36) tm_def
           by auto
       next
         case 4
         then obtain nat where nat_def:"length x1 = Suc (Suc (Suc nat))"
           by (metis add_eq_if diff_Suc_1 le_Suc_ex numeral_3_eq_3 nat.distinct(2))
         hence tm'_def:"type_update_select (TopType x1) = tm'"
-          using 16 TopType
+          using 17 TopType
           by simp
         then obtain tm_int where "(select_return_top x1
                                     (x1 ! (length x1 - 2))
                                     (x1 ! (length x1 - 3))) = tm_int"
                                  "tm_int \<noteq> Bot"
-          using nat_def 16(4)
+          using nat_def 17(4)
           unfolding type_update_select.simps
           by fastforce
         then obtain x2 where x2_def:"(select_return_top x1
@@ -470,10 +488,10 @@ proof -
           using select_return_top_exists
           by fastforce
         have "ct_suffix x1 [TAny, TAny, TSome T_i32] \<or> ct_suffix [TAny, TAny, TSome T_i32] x1"
-          using tm'_def nat_def 16(4)
+          using tm'_def nat_def 17(4)
           by (simp, metis (full_types) produce.simps(6))
         hence tm'_eq:"tm' = TopType x2"
-          using tm'_def nat_def 16(4) x2_def
+          using tm'_def nat_def 17(4) x2_def
           by force
         then obtain cts' ct1 ct2 ct3 where cts'_def:"x1 = cts'@[ct1, ct2, ct3]"
                                                     "ct_eq ct3 (TSome T_i32)"
@@ -483,7 +501,7 @@ proof -
                                         "ct_suffix cts' (to_ct_list cm')"
                                         "ct_eq (x1 ! (length x1 - 2)) (TSome c')"
                                         "ct_eq (x1 ! (length x1 - 3)) (TSome c')"
-          using select_return_top_ct_eq[OF x2_def 4] tm'_eq 4 16(2)
+          using select_return_top_ct_eq[OF x2_def 4] tm'_eq 4 17(2)
           by fastforce
         then obtain as bs where cm'_def:"cm' = as@bs"
                                         "ct_list_eq (to_ct_list bs) cts'"
@@ -501,17 +519,17 @@ proof -
           unfolding to_ct_list_def ct_list_eq_def
           by fastforce
         thus ?thesis
-          using b_e_typing.intros(14,35) tm_def
+          using b_e_typing.intros(15,36) tm_def
           by auto
       qed
     next
       (* TODO: refactor *)
       case (Type x2)
       hence x2_cond:"(length x2 \<ge> 3 \<and> (x2!(length x2-2)) = (x2!(length x2-3)))"
-        using 16
+        using 17
         by (simp, meson)
       hence tm'_def:"consume (Type x2) [TAny, TSome T_i32] = tm'"
-        using 16 Type
+        using 17 Type
         by simp
       obtain ts' ts'' where cts_def:"x2 = ts'@ ts''" "length ts'' = 3"
         using x2_cond
@@ -526,10 +544,10 @@ proof -
         using cts_def
         by simp
       have ts'_suffix:"ct_suffix [TAny, TSome T_i32] (to_ct_list (ts' @ [t1, t2, t3]))"
-        using tm'_def 16(4)
+        using tm'_def 17(4)
         by (simp, metis cts_def2)
       hence tm'_def:"tm' = Type (ts'@[t1])"
-        using tm'_def 16(4) cts_def2
+        using tm'_def 17(4) cts_def2
         by simp
       obtain as bs where "(to_ct_list (ts' @ [t1])) @ (to_ct_list ([t2, t3])) = as@bs"
                          "ct_list_eq bs [TAny, TSome T_i32]"
@@ -550,33 +568,18 @@ proof -
         using cts_def2
         by simp
       thus ?thesis
-        using b_e_typing.intros(14,35) Type tm'_def 16(2)
+        using b_e_typing.intros(15,36) Type tm'_def 17(2)
         by fastforce
     qed simp
-  next
-    case (17 \<C> tn'' tm'' es ts)
-    hence "type_update ts (to_ct_list tn'') (Type tm'') = tm'"
-      by auto
-    moreover
-    have "(b_e_type_checker (\<C>\<lparr>label := ([tm''] @ (label \<C>))\<rparr>) es (tn'' _> tm''))"
-      using 17
-      by (simp, meson)
-    hence "\<C> \<turnstile> [Block (tn'' _> tm'') es] : (tn'' _> tm'')"
-      using b_e_typing.intros(15)[OF _ 17(1)]
-      by blast
-    ultimately
-    show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 17(4,5,3)]
-      by blast
   next
     case (18 \<C> tn'' tm'' es ts)
     hence "type_update ts (to_ct_list tn'') (Type tm'') = tm'"
       by auto
     moreover
-    have "(b_e_type_checker (\<C>\<lparr>label := ([tn''] @ (label \<C>))\<rparr>) es (tn'' _> tm''))"
+    have "(b_e_type_checker (\<C>\<lparr>label := ([tm''] @ (label \<C>))\<rparr>) es (tn'' _> tm''))"
       using 18
       by (simp, meson)
-    hence "\<C> \<turnstile> [Loop (tn'' _> tm'') es] : (tn'' _> tm'')"
+    hence "\<C> \<turnstile> [Block (tn'' _> tm'') es] : (tn'' _> tm'')"
       using b_e_typing.intros(16)[OF _ 18(1)]
       by blast
     ultimately
@@ -584,108 +587,104 @@ proof -
       using b_e_check_single_type_not_bot_sound[OF _ 18(4,5,3)]
       by blast
   next
-    case (19 \<C> tn'' tm'' es1 es2 ts)
+    case (19 \<C> tn'' tm'' es ts)
+    hence "type_update ts (to_ct_list tn'') (Type tm'') = tm'"
+      by auto
+    moreover
+    have "(b_e_type_checker (\<C>\<lparr>label := ([tn''] @ (label \<C>))\<rparr>) es (tn'' _> tm''))"
+      using 19
+      by (simp, meson)
+    hence "\<C> \<turnstile> [Loop (tn'' _> tm'') es] : (tn'' _> tm'')"
+      using b_e_typing.intros(17)[OF _ 19(1)]
+      by blast
+    ultimately
+    show ?case
+      using b_e_check_single_type_not_bot_sound[OF _ 19(4,5,3)]
+      by blast
+  next
+    case (20 \<C> tn'' tm'' es1 es2 ts)
     hence "type_update ts (to_ct_list (tn''@[T_i32])) (Type tm'') = tm'"
       by auto
     moreover
     have "(b_e_type_checker (\<C>\<lparr>label := ([tm''] @ (label \<C>))\<rparr>) es1 (tn'' _> tm''))"
          "(b_e_type_checker (\<C>\<lparr>label := ([tm''] @ (label \<C>))\<rparr>) es2 (tn'' _> tm''))"
-      using 19
+      using 20
       by (simp, meson)+
     hence "\<C> \<turnstile> [If (tn'' _> tm'') es1 es2] : (tn''@[T_i32] _> tm'')"
-      using b_e_typing.intros(17)[OF _ 19(1,2)]
+      using b_e_typing.intros(18)[OF _ 20(1,2)]
       by blast
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 19(5,6,4)]
+      using b_e_check_single_type_not_bot_sound[OF _ 20(5,6,4)]
       by blast
-  next
-    case (20 \<C> i ts)
-    hence "type_update ts (to_ct_list ((label \<C>)!i)) (TopType []) = tm'"
-      by auto
-    moreover
-    have "i < length (label \<C>)"
-      using 20
-      by (simp, meson)
-    ultimately
-    show ?case
-      using b_e_check_single_top_not_bot_sound[OF _ 20(3,4)]
-            b_e_typing.intros(18)
-            b_e_typing.intros(35)
-      by (metis suffix_def)
   next
     case (21 \<C> i ts)
-    hence "type_update ts (to_ct_list ((label \<C>)!i @ [T_i32])) (Type ((label \<C>)!i)) = tm'"
+    hence "type_update ts (to_ct_list ((label \<C>)!i)) (TopType []) = tm'"
       by auto
     moreover
     have "i < length (label \<C>)"
       using 21
       by (simp, meson)
+    ultimately
+    show ?case
+      using b_e_check_single_top_not_bot_sound[OF _ 21(3,4)]
+            b_e_typing.intros(19)
+            b_e_typing.intros(36)
+      by (metis suffix_def)
+  next
+    case (22 \<C> i ts)
+    hence "type_update ts (to_ct_list ((label \<C>)!i @ [T_i32])) (Type ((label \<C>)!i)) = tm'"
+      by auto
+    moreover
+    have "i < length (label \<C>)"
+      using 22
+      by (simp, meson)
     hence "\<C> \<turnstile> [Br_if i] : ((label \<C>)!i @ [T_i32] _> (label \<C>)!i)"
-      using b_e_typing.intros(19)
+      using b_e_typing.intros(20)
       by fastforce
     ultimately
     show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 21(3,4,2)]
+      using b_e_check_single_type_not_bot_sound[OF _ 22(3,4,2)]
       by fastforce
   next
-    case (22 \<C> "is" i ts)
+    case (23 \<C> "is" i ts)
     then obtain tls where tls_def:"(same_lab (is@[i]) (label \<C>)) = Some tls"
       by fastforce
     hence "type_update ts (to_ct_list (tls @ [T_i32])) (TopType []) = tm'"
-      using 22
+      using 23
       by simp
     thus ?case
-      using b_e_check_single_top_not_bot_sound[OF _ 22(3,4)]
-            b_e_typing.intros(20)[OF same_lab_conv_list_all[OF tls_def]]
-            b_e_typing.intros(35)
+      using b_e_check_single_top_not_bot_sound[OF _ 23(3,4)]
+            b_e_typing.intros(21)[OF same_lab_conv_list_all[OF tls_def]]
+            b_e_typing.intros(36)
       by (metis suffix_def)
   next
-    case (23 \<C> ts)
+    case (24 \<C> ts)
     then obtain ts_r where "(return \<C>) = Some ts_r"
       by fastforce
     moreover
     hence "type_update ts (to_ct_list ts_r) (TopType []) = tm'"
-      using 23
+      using 24
       by simp
     ultimately
     show ?case
-      using b_e_check_single_top_not_bot_sound[OF _ 23(3,4)]
-            b_e_typing.intros(21,35)
+      using b_e_check_single_top_not_bot_sound[OF _ 24(3,4)]
+            b_e_typing.intros(22,36)
       by (metis suffix_def)
   next
-    case (24 \<C> i ts)
+    case (25 \<C> i ts)
     obtain tn'' tm'' where func_def:"(func_t \<C>)!i = (tn'' _> tm'')"
       using tf.exhaust
       by blast
     hence "type_update ts (to_ct_list tn'') (Type tm'') = tm'"
-      using 24
+      using 25
       by auto
     moreover
     have "i < length (func_t \<C>)"
-      using 24
+      using 25
       by (simp, meson)
     hence "\<C> \<turnstile> [Call i] : (tn'' _> tm'')"
-      using b_e_typing.intros(22) func_def
-      by fastforce
-    ultimately
-    show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 24(3,4,2)]
-      by fastforce
-  next
-    case (25 \<C> i ts)
-    obtain tn'' tm'' where type_def:"(types_t \<C>)!i = (tn'' _> tm'')"
-      using tf.exhaust
-      by blast
-    hence "type_update ts (to_ct_list (tn''@[T_i32])) (Type tm'') = tm'"
-      using 25
-      by auto
-    moreover
-    have "(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
-      using 25
-      by (simp, meson)
-    hence "\<C> \<turnstile> [Call_indirect i] : (tn''@[T_i32] _> tm'')"
-      using b_e_typing.intros(23) type_def
+      using b_e_typing.intros(23) func_def
       by fastforce
     ultimately
     show ?case
@@ -693,46 +692,49 @@ proof -
       by fastforce
   next
     case (26 \<C> i ts)
-    hence "type_update ts [] (Type [(local \<C>)!i]) = tm'"
+    obtain tn'' tm'' where type_def:"(types_t \<C>)!i = (tn'' _> tm'')"
+      using tf.exhaust
+      by blast
+    hence "type_update ts (to_ct_list (tn''@[T_i32])) (Type tm'') = tm'"
+      using 26
       by auto
     moreover
-    have "i < length (local \<C>)"
+    have "(table \<C>) \<noteq> None \<and> i < length (types_t \<C>)"
       using 26
       by (simp, meson)
-    hence "\<C> \<turnstile> [Get_local i] : ([] _> [(local \<C>)!i])"
-      using b_e_typing.intros(24)
+    hence "\<C> \<turnstile> [Call_indirect i] : (tn''@[T_i32] _> tm'')"
+      using b_e_typing.intros(24) type_def
       by fastforce
     ultimately
     show ?case
       using b_e_check_single_type_not_bot_sound[OF _ 26(3,4,2)]
-      unfolding to_ct_list_def
-      by (metis list.map_disc_iff)
+      by fastforce
   next
     case (27 \<C> i ts)
-    hence "type_update ts (to_ct_list [(local \<C>)!i]) (Type []) = tm'"
-      unfolding to_ct_list_def
+    hence "type_update ts [] (Type [(local \<C>)!i]) = tm'"
       by auto
     moreover
     have "i < length (local \<C>)"
       using 27
       by (simp, meson)
-    hence "\<C> \<turnstile> [Set_local i] : ([(local \<C>)!i] _> [])"
+    hence "\<C> \<turnstile> [Get_local i] : ([] _> [(local \<C>)!i])"
       using b_e_typing.intros(25)
       by fastforce
     ultimately
     show ?case
       using b_e_check_single_type_not_bot_sound[OF _ 27(3,4,2)]
-      by fastforce
+      unfolding to_ct_list_def
+      by (metis list.map_disc_iff)
   next
     case (28 \<C> i ts)
-    hence "type_update ts (to_ct_list [(local \<C>)!i]) (Type [(local \<C>)!i]) = tm'"
+    hence "type_update ts (to_ct_list [(local \<C>)!i]) (Type []) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
     have "i < length (local \<C>)"
       using 28
       by (simp, meson)
-    hence "\<C> \<turnstile> [Tee_local i] : ([(local \<C>)!i] _> [(local \<C>)!i])"
+    hence "\<C> \<turnstile> [Set_local i] : ([(local \<C>)!i] _> [])"
       using b_e_typing.intros(26)
       by fastforce
     ultimately
@@ -741,66 +743,66 @@ proof -
       by fastforce
   next
     case (29 \<C> i ts)
-    hence "type_update ts [] (Type [tg_t ((global \<C>)!i)]) = tm'"
+    hence "type_update ts (to_ct_list [(local \<C>)!i]) (Type [(local \<C>)!i]) = tm'"
+      unfolding to_ct_list_def
       by auto
     moreover
-    have "i < length (global \<C>)"
+    have "i < length (local \<C>)"
       using 29
       by (simp, meson)
-    hence "\<C> \<turnstile> [Get_global i] : ([] _> [tg_t ((global \<C>)!i)])"
+    hence "\<C> \<turnstile> [Tee_local i] : ([(local \<C>)!i] _> [(local \<C>)!i])"
       using b_e_typing.intros(27)
       by fastforce
     ultimately
     show ?case
       using b_e_check_single_type_not_bot_sound[OF _ 29(3,4,2)]
+      by fastforce
+  next
+    case (30 \<C> i ts)
+    hence "type_update ts [] (Type [tg_t ((global \<C>)!i)]) = tm'"
+      by auto
+    moreover
+    have "i < length (global \<C>)"
+      using 30
+      by (simp, meson)
+    hence "\<C> \<turnstile> [Get_global i] : ([] _> [tg_t ((global \<C>)!i)])"
+      using b_e_typing.intros(28)
+      by fastforce
+    ultimately
+    show ?case
+      using b_e_check_single_type_not_bot_sound[OF _ 30(3,4,2)]
       unfolding to_ct_list_def
       by (metis list.map_disc_iff)
   next
-    case (30 \<C> i ts)
+    case (31 \<C> i ts)
     hence "type_update ts (to_ct_list [tg_t ((global \<C>)!i)]) (Type []) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
     have "i < length (global \<C>) \<and> is_mut (global \<C> ! i)"
-      using 30
+      using 31
       by (simp, meson)
     then obtain t where "(global \<C> ! i) = \<lparr>tg_mut = T_mut, tg_t = t\<rparr>" "i < length (global \<C>)"
       unfolding is_mut_def
       by (cases "global \<C> ! i", auto)
     hence "\<C> \<turnstile> [Set_global i] : ([tg_t (global \<C> ! i)] _> [])"
-      using b_e_typing.intros(28)[of i \<C> "tg_t (global \<C> ! i)"]
+      using b_e_typing.intros(29)[of i \<C> "tg_t (global \<C> ! i)"]
       unfolding is_mut_def tg_t_def
-      by fastforce
-    ultimately
-    show ?case
-      using b_e_check_single_type_not_bot_sound[OF _ 30(3,4,2)]
-      by fastforce
-  next
-    case (31 \<C> t tp_sx a off ts)
-    hence "type_update ts (to_ct_list [T_i32]) (Type [t]) = tm'"
-      unfolding to_ct_list_def
-      by auto
-    moreover
-    have "(memory \<C>) \<noteq> None \<and> load_store_t_bounds a (option_projl tp_sx) t"
-      using 31
-      by (simp, meson)
-    hence "\<C> \<turnstile> [Load t tp_sx a off] : ([T_i32] _> [t])"
-      using b_e_typing.intros(29)
       by fastforce
     ultimately
     show ?case
       using b_e_check_single_type_not_bot_sound[OF _ 31(3,4,2)]
       by fastforce
   next
-    case (32 \<C> t tp a off ts)
-    hence "type_update ts (to_ct_list [T_i32,t]) (Type []) = tm'"
+    case (32 \<C> t tp_sx a off ts)
+    hence "type_update ts (to_ct_list [T_i32]) (Type [t]) = tm'"
       unfolding to_ct_list_def
       by auto
     moreover
-    have "(memory \<C>) \<noteq> None \<and> load_store_t_bounds a tp t"
+    have "(memory \<C>) \<noteq> None \<and> load_store_t_bounds a (option_projl tp_sx) t"
       using 32
       by (simp, meson)
-    hence "\<C> \<turnstile> [Store t tp a off] : ([T_i32,t] _> [])"
+    hence "\<C> \<turnstile> [Load t tp_sx a off] : ([T_i32] _> [t])"
       using b_e_typing.intros(30)
       by fastforce
     ultimately
@@ -808,36 +810,52 @@ proof -
       using b_e_check_single_type_not_bot_sound[OF _ 32(3,4,2)]
       by fastforce
   next
-    case (33 \<C> ts)
-    hence "type_update ts [] (Type [T_i32]) = tm'"
+    case (33 \<C> t tp a off ts)
+    hence "type_update ts (to_ct_list [T_i32,t]) (Type []) = tm'"
+      unfolding to_ct_list_def
       by auto
     moreover
-    have "memory \<C> \<noteq> None" 
+    have "(memory \<C>) \<noteq> None \<and> load_store_t_bounds a tp t"
       using 33
       by (simp, meson)
-    hence "\<C> \<turnstile> [Current_memory] : ([] _> [T_i32])"
+    hence "\<C> \<turnstile> [Store t tp a off] : ([T_i32,t] _> [])"
       using b_e_typing.intros(31)
       by fastforce
     ultimately
     show ?case
       using b_e_check_single_type_not_bot_sound[OF _ 33(3,4,2)]
-      unfolding to_ct_list_def
-      by (metis list.map_disc_iff)
+      by fastforce
   next
     case (34 \<C> ts)
-    hence "type_update ts (to_ct_list [T_i32]) (Type [T_i32]) = tm'"
-      unfolding to_ct_list_def
+    hence "type_update ts [] (Type [T_i32]) = tm'"
       by auto
     moreover
-    have "memory \<C> \<noteq> None" 
+    have "memory \<C> \<noteq> None"
       using 34
       by (simp, meson)
-    hence "\<C> \<turnstile> [Grow_memory] : ([T_i32] _> [T_i32])"
+    hence "\<C> \<turnstile> [Current_memory] : ([] _> [T_i32])"
       using b_e_typing.intros(32)
       by fastforce
     ultimately
     show ?case
       using b_e_check_single_type_not_bot_sound[OF _ 34(3,4,2)]
+      unfolding to_ct_list_def
+      by (metis list.map_disc_iff)
+  next
+    case (35 \<C> ts)
+    hence "type_update ts (to_ct_list [T_i32]) (Type [T_i32]) = tm'"
+      unfolding to_ct_list_def
+      by auto
+    moreover
+    have "memory \<C> \<noteq> None"
+      using 35
+      by (simp, meson)
+    hence "\<C> \<turnstile> [Grow_memory] : ([T_i32] _> [T_i32])"
+      using b_e_typing.intros(33)
+      by fastforce
+    ultimately
+    show ?case
+      using b_e_check_single_type_not_bot_sound[OF _ 35(3,4,2)]
       by fastforce
   qed
   thus ?thesis
@@ -904,13 +922,14 @@ proof -
     thus ?case
       by (simp del: convert_cond.simps, meson assms(2) type_update.simps)
   next
+  next
     case (12 \<C> t1 t2 sx ts)
     thus ?case
-      by (simp, meson assms(2) type_update.simps)
+      by (simp del: convert_cond.simps, meson assms(2) type_update.simps)
   next
-    case (13 \<C> ts)
+    case (13 \<C> t1 t2 sx ts)
     thus ?case
-      by fastforce
+      by (simp, meson assms(2) type_update.simps)
   next
     case (14 \<C> ts)
     thus ?case
@@ -924,19 +943,19 @@ proof -
     thus ?case
       by fastforce
   next
-    case (17 \<C> tn tm es ts)
+    case (17 \<C> ts)
     thus ?case
-      by (simp, meson assms(2) type_update.simps)
+      by fastforce
   next
     case (18 \<C> tn tm es ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (19 \<C> tn tm es1 es2 ts)
+    case (19 \<C> tn tm es ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (20 \<C> i ts)
+    case (20 \<C> tn tm es1 es2 ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
@@ -944,25 +963,25 @@ proof -
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (22 \<C> "is" ts)
+    case (22 \<C> i ts)
+    thus ?case
+      by (simp, meson assms(2) type_update.simps)
+  next
+    case (23 \<C> "is" ts)
     thus ?case
       by (simp, metis assms(2) option.case_eq_if type_update.simps)
   next
-    case (23 \<C> ts)
+    case (24 \<C> ts)
     thus ?case
       by (simp, metis assms(2) option.case_eq_if type_update.simps)
-  next
-    case (24 \<C> i ts)
-    then show ?case
-      by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (25 \<C> i ts)
-    thus ?case
+    then show ?case
       by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (26 \<C> i ts)
     thus ?case
-      by (simp, meson assms(2) type_update.simps)
+      by (simp, metis (no_types, lifting) assms(2) tf.case tf.exhaust type_update.simps)
   next
     case (27 \<C> i ts)
     thus ?case
@@ -980,19 +999,23 @@ proof -
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (31 \<C> t tp_sx a off ts)
+    case (31 \<C> i ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (32 \<C> t tp a off ts)
+    case (32 \<C> t tp_sx a off ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
-    case (33 \<C> ts)
+    case (33 \<C> t tp a off ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   next
     case (34 \<C> ts)
+    thus ?case
+      by (simp, meson assms(2) type_update.simps)
+  next
+    case (35 \<C> ts)
     thus ?case
       by (simp, meson assms(2) type_update.simps)
   qed
@@ -1082,7 +1105,7 @@ lemma check_single_imp_weakening:
           "c_types_agree ctm t2s"
   shows "\<exists>ctm'. check_single \<C> e ctn = ctm' \<and> c_types_agree ctm' t2s"
 proof -
-  consider (1) "check_single \<C> e = id" 
+  consider (1) "check_single \<C> e = id"
          | (2) "check_single \<C> e = (\<lambda>ctn. type_update_select ctn)"
          | (3) "(\<exists>cons prods. (check_single \<C> e = (\<lambda>ctn. type_update ctn cons prods)))"
     using check_single_imp assms
@@ -1177,7 +1200,7 @@ proof -
           unfolding to_ct_list_def
           by (metis Suc_leI ct_list_eq_commute diff_is_0_eq drop_0 length_Cons length_map lessI
                     list.size(3) numeral_2_eq_2)
-        hence temp4:"ct_suffix [TSome T_i32] x1" 
+        hence temp4:"ct_suffix [TSome T_i32] x1"
           using ct_suffix_less[of "[TSome t]" "[TSome T_i32]" x1]
                 ct_suffix_extend_ct_list_eq[of "[]" "[]"] ct_suffix_nil
           unfolding to_ct_list_def
@@ -1372,7 +1395,7 @@ lemma b_e_check_single_type_type:
   assumes "check_single \<C> e xs = (Type tm)"
   shows "\<exists>tn. xs = (Type tn)"
 proof -
-  consider (1) "check_single \<C> e = id" 
+  consider (1) "check_single \<C> e = id"
          | (2) "check_single \<C> e = (\<lambda>ctn. type_update_select ctn)"
          | (3) "(\<exists>cons prods. (check_single \<C> e = (\<lambda>ctn. type_update ctn cons prods)))"
     using check_single_imp assms
@@ -1454,7 +1477,7 @@ lemma b_e_check_single_weaken_type:
   assumes "check_single \<C> e (Type tn) = (Type tm)"
   shows "check_single \<C> e (Type (ts@tn)) = Type (ts@tm)"
 proof -
-  consider (1) "check_single \<C> e = id" 
+  consider (1) "check_single \<C> e = id"
          | (2) "check_single \<C> e = (\<lambda>ctn. type_update_select ctn)"
          | (3) "(\<exists>cons prods. (check_single \<C> e = (\<lambda>ctn. type_update ctn cons prods)))"
     using check_single_imp assms
@@ -1506,7 +1529,7 @@ lemma b_e_check_single_weaken_top:
   assumes "check_single \<C> e (Type tn) = TopType tm"
   shows "check_single \<C> e (Type (ts@tn)) = TopType tm"
 proof -
-  consider (1) "check_single \<C> e = id" 
+  consider (1) "check_single \<C> e = id"
          | (2) "check_single \<C> e = (\<lambda>ctn. type_update_select ctn)"
          | (3) "(\<exists>cons prods. (check_single \<C> e = (\<lambda>ctn. type_update ctn cons prods)))"
     using check_single_imp assms
@@ -1593,7 +1616,7 @@ next
       using check_bot Cons
       by simp
   qed
-  
+
 qed
 
 lemma b_e_type_checker_weaken:
