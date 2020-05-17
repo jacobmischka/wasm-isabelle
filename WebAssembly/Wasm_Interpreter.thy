@@ -16,6 +16,7 @@ datatype res_step =
 | RSBreak nat "v list"
 | RSReturn "v list"
 | RSNormal "e list"
+| RSTailInvoke "v list" cl
 
 abbreviation crash_error where "crash_error \<equiv> RSCrash CError"
 
@@ -366,6 +367,22 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                         (s, vs, RSNormal ((vs_to_es ves')@[Trap]))
                 | _ \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves')@[Trap])))
            | _ \<Rightarrow> (s, vs, crash_error))
+      \<comment> \<open>\<open>RETURN_CALL\<close>\<close>
+      | $ReturnCall j \<Rightarrow>
+          (s, vs, RSNormal ((vs_to_es ves) @ [TailCallcl (sfunc s i j)]))
+      \<comment> \<open>\<open>RETURN_CALL_INDIRECT\<close>\<close>
+      | $ReturnCall_indirect j \<Rightarrow>
+          (case ves of
+             (ConstInt32 c)#ves' \<Rightarrow>
+               (case (stab s i (nat_of_int c)) of
+                  Some cl \<Rightarrow>
+                    if (stypes s i j = cl_type cl)
+                      then
+                        (s, vs, RSNormal ((vs_to_es ves') @ [TailCallcl cl]))
+                      else
+                        (s, vs, RSNormal ((vs_to_es ves')@[Trap]))
+                | _ \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves')@[Trap])))
+           | _ \<Rightarrow> (s, vs, crash_error))
       \<comment> \<open>\<open>RETURN\<close>\<close>
       | $Return \<Rightarrow>
           (s, vs, RSReturn ves)
@@ -497,6 +514,17 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                    | None \<Rightarrow> (s, vs, RSNormal ((vs_to_es ves'')@[Trap]))
                  else
                    (s, vs, crash_error))
+      \<comment> \<open>\<open>FIXME: TAILCALLCL\<close>\<close>
+      | TailCallcl cl \<Rightarrow>
+          (case cl_type cl of
+             (t1s _> t2s) \<Rightarrow>
+               let n = length t1s in
+               let m = length t2s in
+               if length ves \<ge> n
+                 then
+                   (s, vs, RSTailInvoke ves cl)
+                 else
+                   (s, vs, crash_error))
       \<comment> \<open>\<open>LABEL\<close>\<close>
       | Label ln les es \<Rightarrow>
           if es_is_trap es
@@ -517,6 +545,8 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                          (s', vs', RSBreak n bvs)
                      | RSReturn rvs \<Rightarrow>
                          (s', vs', RSReturn rvs)
+                     | RSTailInvoke rvs cl \<Rightarrow>
+                         (s', vs', RSTailInvoke rvs cl)
                      | RSNormal es' \<Rightarrow>
                          (s', vs', RSNormal ((vs_to_es ves)@[Label ln les es']))
                      | _ \<Rightarrow> (s', vs', crash_error)))
@@ -541,6 +571,14 @@ and run_one_step :: "depth \<Rightarrow> nat \<Rightarrow> config_one_tuple \<Ri
                              if (length rvs \<ge> ln)
                                then (s', vs, RSNormal (vs_to_es ((take ln rvs)@ves)))
                                else (s', vs, crash_error)
+                          \<comment> \<open>\<open>FIXME\<close>\<close>
+                         | RSTailInvoke rvs cl \<Rightarrow> (case cl_type cl of
+                             (t1s _> t2s) \<Rightarrow>
+                               let n = length t1s in
+                               let m = length t2s in
+                               if (length rvs \<ge> n \<and> ln = m)
+                                 then (s', vs, RSNormal (vs_to_es ((take n rvs)@ves)@[Callcl cl]))
+                               else (s', vs, crash_error))
                          | RSNormal es' \<Rightarrow>
                              (s', vs, RSNormal ((vs_to_es ves)@[Local ln j vls' es']))
                          | _ \<Rightarrow> (s', vs, RSCrash CExhaustion)))

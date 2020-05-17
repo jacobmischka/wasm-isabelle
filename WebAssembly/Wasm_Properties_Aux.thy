@@ -391,6 +391,22 @@ lemma b_e_type_call_indirect:
   using assms
   by (induction "[e]" "(ts _> ts')" arbitrary: ts ts' rule: b_e_typing.induct, auto)
 
+lemma b_e_type_return_call:
+  assumes "\<C> \<turnstile> [e] : (ts _> ts')"
+          "e = ReturnCall i"
+  shows  "i < length (func_t \<C>)"
+         "\<exists>ts'' tf1 tf2. ts = ts''@tf1 \<and> (func_t \<C>)!i = (tf1 _> tf2) \<and> (return \<C>) = Some tf2"
+  using assms
+  by (induction "[e]" "(ts _> ts')" arbitrary: ts ts' rule: b_e_typing.induct, auto)
+
+lemma b_e_type_return_call_indirect:
+  assumes "\<C> \<turnstile> [e] : (ts _> ts')"
+          "e = ReturnCall_indirect i"
+  shows "i < length (types_t \<C>)"
+        "\<exists>ts'' tf1 tf2. ts = ts''@tf1@[T_i32] \<and> (types_t \<C>)!i = (tf1 _> tf2) \<and> (return \<C>) = Some tf2"
+  using assms
+  by (induction "[e]" "(ts _> ts')" arbitrary: ts ts' rule: b_e_typing.induct, auto)
+
 lemma b_e_type_get_local:
   assumes "\<C> \<turnstile> [e] : (ts _> ts')"
           "e = Get_local i"
@@ -676,7 +692,7 @@ next
   then show ?case
     by simp
 next
-  case (7 \<S> \<C> t2s)
+  case (8 \<S> \<C> t2s)
   then show ?case
     by fastforce
 qed
@@ -762,6 +778,44 @@ next
     by fastforce
 qed
 
+lemma e_type_tail_callcl:
+  assumes "\<S>\<bullet>\<C> \<turnstile> [TailCallcl cl] : (t31s _> t4s)"
+  shows "\<exists>t3s' t1s' t2s'. t31s = t3s' @ t1s'  
+              \<and> cl_type cl = (t1s' _> t2s')
+              \<and> cl_typing \<S> cl (t1s' _> t2s')
+              \<and> (return \<C>) = Some t2s'"
+  using assms
+proof (induction "\<S>" "\<C>" "[TailCallcl cl]" "(t31s _> t4s)" arbitrary: t31s t4s)
+  case (1 \<C> b_es \<S>)
+  then show ?case
+    by fastforce
+next
+  case (2 \<S> \<C> es t1s t2s e t3s)
+  have "\<C> \<turnstile> [] : (t1s _> t2s)"
+    using 2(1,5) unlift_b_e
+    by (metis Nil_is_map_conv append_Nil butlast_snoc)
+  thus ?case
+    using 2(4,5)
+    by fastforce
+next
+  case (3 \<S> \<C> t1s t2s ts)
+  then show ?case
+    by (metis append.assoc)
+next
+  case 4
+  thus ?case
+    by fastforce
+next
+  case (7 \<S> t1s t2s \<C> t4s)
+  (* FIXME: This can surely be cleaned up *)
+  have "cl_type cl = (t1s _> t2s)"
+    using "7.hyps"(1) cl.case(1,2) cl_type_def cl_typing.cases
+    by smt
+  then show ?case
+    using "7.hyps"
+    by fastforce
+qed
+
 lemma s_type_unfold:
   assumes "\<S>\<bullet>rs \<tturnstile>_i vs;es : ts"
   shows "i < length (s_inst \<S>)"
@@ -794,7 +848,7 @@ lemma e_type_local_shallow:
 proof (induction "\<S>" "\<C>" "[Local n i vs es]" "(ts _> ts')" arbitrary: ts ts')
   case (1 \<C> b_es \<S>)
   thus ?case
-  by (metis e.distinct(7) map_eq_Cons_D)
+  by (metis e.distinct(9) map_eq_Cons_D)
 next
   case (2 \<S> \<C> es t1s t2s e t3s)
   thus ?case
