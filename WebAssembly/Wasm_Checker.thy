@@ -86,6 +86,9 @@ foldl_Cons: "foldl f a (x # xs) = foldl f (f a x) xs"
 | "check_single \<C> (Unop_f t _) ts = (if is_float_t t
                                        then type_update ts [TSome t] (Type [t])
                                        else Bot)"
+| "check_single \<C> (ExtendS t _) ts = (if is_int_t t
+                                       then type_update ts [TSome t] (Type [t])
+                                       else Bot)"
 | "check_single \<C> (Binop_i t _) ts = (if is_int_t t
                                        then type_update ts [TSome t, TSome t] (Type [t])
                                        else Bot)"

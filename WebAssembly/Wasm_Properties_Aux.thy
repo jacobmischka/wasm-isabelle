@@ -335,6 +335,7 @@ definition arity_1_result :: "b_e \<Rightarrow> t" where
   "arity_1_result op1 = (case op1 of
                            Unop_i t _ \<Rightarrow> t
                          | Unop_f t _ \<Rightarrow> t
+                         | ExtendS t _ \<Rightarrow> t
                          | Testop t _ \<Rightarrow> T_i32
                          | Cvtop t1 Convert _ _ \<Rightarrow> t1
                          | Cvtop t1 ConvertSat _ _ \<Rightarrow> t1
@@ -342,7 +343,7 @@ definition arity_1_result :: "b_e \<Rightarrow> t" where
 
 lemma b_e_type_unop_testop:
   assumes "\<C> \<turnstile> [e] : (ts _> ts')"
-          "e = Unop_i t iop \<or> e = Unop_f t fop \<or> e = Testop t testop"
+          "e = Unop_i t iop \<or> e = Unop_f t fop \<or> e = ExtendS t extendsop \<or> e = Testop t testop"
   shows "\<exists>ts''. ts = ts''@[t] \<and> ts' = ts''@[arity_1_result e]"
         "e = Unop_f t fop \<Longrightarrow> is_float_t t"
   using assms int_float_disjoint

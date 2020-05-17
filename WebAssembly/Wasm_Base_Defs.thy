@@ -3,7 +3,7 @@ section \<open>WebAssembly Base Definitions\<close>
 theory Wasm_Base_Defs imports Wasm_Ast Wasm_Type_Abs begin
 
 instantiation i32 :: wasm_int begin instance .. end
-instantiation i64 :: wasm_int begin instance .. end
+instantiation i64 :: wasm_int64 begin instance .. end
 instantiation f32 :: wasm_float begin instance .. end
 instantiation f64 :: wasm_float begin instance .. end
 
@@ -37,6 +37,12 @@ consts
   f64_convert_si32 :: "i32 \<Rightarrow> f64"
   f64_convert_ui64 :: "i64 \<Rightarrow> f64"
   f64_convert_si64 :: "i64 \<Rightarrow> f64"
+  (* sign-extending int *)
+  i32_extend8_s :: "i32 \<Rightarrow> i32"
+  i32_extend16_s :: "i32 \<Rightarrow> i32"
+  i64_extend8_s :: "i64 \<Rightarrow> i64"
+  i64_extend16_s :: "i64 \<Rightarrow> i64"
+  i64_extend32_s :: "i64 \<Rightarrow> i64"
   (* intra-{int/float} conversions *)
   wasm_wrap :: "i64 \<Rightarrow> i32"
   wasm_extend_u :: "i32 \<Rightarrow> i64"
@@ -144,6 +150,17 @@ definition app_unop_f :: "unop_f \<Rightarrow> 'f::wasm_float \<Rightarrow> 'f::
                   | Trunc \<Rightarrow> float_trunc c
                   | Nearest \<Rightarrow> float_nearest c
                   | Sqrt \<Rightarrow> float_sqrt c)"
+
+definition app_extendsop_i32 :: "extendsop \<Rightarrow> 'i::wasm_int \<Rightarrow> 'i::wasm_int" where
+  "app_extendsop_i32 extendsop c = (case extendsop of
+                                    Extend8S \<Rightarrow> int_extend8_s c
+                                  | Extend16S \<Rightarrow> int_extend16_s c)"
+
+definition app_extendsop_i64 :: "extendsop \<Rightarrow> 'i::wasm_int64 \<Rightarrow> 'i::wasm_int64" where
+  "app_extendsop_i64 extendsop c = (case extendsop of
+                                    Extend8S \<Rightarrow> int_extend8_s c
+                                  | Extend16S \<Rightarrow> int_extend16_s c
+                                  | Extend32S \<Rightarrow> int64_extend32_s c)"
 
 definition app_binop_i :: "binop_i \<Rightarrow> 'i::wasm_int \<Rightarrow> 'i::wasm_int \<Rightarrow> ('i::wasm_int) option" where
   "app_binop_i iop c1 c2 = (case iop of

@@ -1,3 +1,4 @@
+ROOT~
 *.thy~
 document/*.tex
 !document/root.tex
